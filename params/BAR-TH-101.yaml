@@ -1,0 +1,71 @@
+schema_version: "1.0"
+code: "BAR-TH-101"
+title: "Chauffe-eau solaire individuel (CESI)"
+description: "Mise en place d’un chauffe-eau solaire individuel (CESI) à circulation forcée avec capteurs solaires vitrés, ballon d’ECS solaire et appoint."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+calcul_standard:
+  kind: multiplication
+  base_input: zone_climatique
+  factor_input: zone_climatique
+  rates:
+    H1: 18500
+    H2: 21000
+    H3: 24200
+  output:
+    name: kwh_cumac
+    round: 0
+
+bonifications: []
+
+eligibility_details: |
+  • Secteur : maisons individuelles existantes en France métropolitaine.
+  • Systèmes éligibles : CESI à circulation forcée (capteurs solaires thermiques vitrés, ballon d’ECS solaire + appoint).
+    - Exclus : systèmes de type thermosiphon, auto-stockeur, capteurs hybrides.
+  • Surface hors-tout totale des capteurs ≥ 2 m².
+  • Efficacité énergétique (règlement UE n°814/2013) selon profil soutirage (M, L, XL, XXL) :
+    - Profil M : ≥ 36 % (électrique) ou ≥ 38 % (autre appoint)
+    - Profil L : ≥ 37 % (électrique) ou ≥ 95 % (autre)
+    - Profil XL : ≥ 60 % (électrique) ou ≥ 100 % (autre)
+    - Profil XXL : ≥ 110 % (électrique) ou ≥ 120 % (autre)
+  • Ballon(s) d’eau chaude solaire :
+    - Si capacité ≤ 500 L → classe énergétique ≥ C (règlement UE n°812/2013).
+  • Capteurs thermiques vitrés à circulation d’eau/eau glycolée :
+    - Certification CSTBat ou SolarKeymark (normes ISO 9806, NF EN 12975), ou équivalent par organisme accrédité NF EN ISO/IEC 17025.
+  • Mise en œuvre par un professionnel qualifié (RGE, décret n°2014-812).
+  • Preuves : 
+    - mise en place d’un CESI, nature de l’appoint, fluide circulant,
+    - surface hors-tout capteurs (m²), efficacité énergétique pour le profil déclaré,
+    - nombre & capacité des ballons (litres),
+    - classe énergétique des ballons ≤ 500 L,
+    - date de visite technique,
+    - marque & référence des équipements si mention.
+  • Documents spécifiques : 
+    - certification CSTBat ou SolarKeymark des capteurs,
+    - décision de qualification/certification du professionnel.
+  • Durée de vie conventionnelle : 20 ans.
+  • Validité fiche : jusqu’au 1er janvier 2030.
+
+meta:
+  lifetime_years: 20
+  valid_from: null
+  valid_to: "2030-01-01"
+  references:
+    - "Fiche CEE BAR-TH-101 — Chauffe-eau solaire individuel (applicable jusqu’au 01/01/2030)"
+    - "Arrêté du 22 décembre 2014 (art. 2 bis)"
+    - "Décret n°2014-812 du 16 juillet 2014 — exigences de qualification"
+    - "Règlements UE n°814/2013 et n°812/2013"
+    - "Normes : ISO 9806, NF EN 12975, NF EN ISO/IEC 17025"

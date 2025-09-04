@@ -1,0 +1,67 @@
+schema_version: "1.0"
+code: "BAR-EN-101"
+title: "Isolation de combles ou de toiture"
+description: "Mise en place d’un procédé d’isolation thermique en comble perdu ou en rampant de toiture."
+
+units:
+  base_input: "m²"
+  rate: "kWhcumac/m²"
+  output: "kWhcumac"
+
+inputs:
+  - name: surface
+    label: "Surface isolée"
+    type: number
+    min: 1
+    max: 100000
+    step: 0.1
+    default: 100
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+calcul_standard:
+  kind: multiplication
+  base_input: surface
+  factor_input: zone_climatique
+  rates:
+    H1: 1700
+    H2: 1400
+    H3: 920
+  output:
+    name: kwh_cumac
+    round: 0
+
+bonifications: []
+
+eligibility_details: |
+  • Secteur : bâtiments résidentiels existants.
+  • R min : 7,0 m²·K/W en COMBLE PERDU ; 6,0 m²·K/W en RAMPANT DE TOITURE.
+  • Évaluation R : NF EN 12664 / 12667 / 12939 (isolants non réfléchissants) ; NF EN ISO 22097 (réfléchissants).
+  • Pare-vapeur (ou dispositif équivalent) à prévoir si nécessaire contre les transferts d’humidité.
+  • Mise en œuvre par professionnel qualifié (RGE).
+  • Visite technique préalable : au plus tard avant l’établissement du devis (la date doit figurer sur la preuve).
+  • Délai devis → travaux : 7 jours francs minimum avant pose de l’isolant.
+  • Preuves (mentions) : isolation de combles/toiture ; marque & référence, épaisseur et surface ; R de l’isolant
+    (ou λ + épaisseur) ; aménagements nécessaires (coffrage/écran autour conduits et éclairages, rehausse trappe,
+    pare-vapeur si nécessaire) ; date de visite du bâtiment.
+  • À défaut : document fabricant/organisme (EEA) accrédité NF EN ISO/IEC 17065 (COFRAC/EA) indiquant
+    que le matériau est un isolant et ses caractéristiques (R ou λ + épaisseur). Validité possible jusqu’à 1 an après
+    la fin de validité indiquée.
+  • Document spécifique : décision de qualification/certification du professionnel.
+  • Durée de vie conventionnelle : 30 ans.
+  • Validité fiche : abrogée au 1er mai 2027.
+
+meta:
+  lifetime_years: 30
+  valid_from: null
+  valid_to: "2027-05-01"
+  references:
+    - "Fiche CEE BAR-EN-101 — Isolation de combles ou de toiture (abrogation 01/05/2027)"
+    - "Arrêté du 22 décembre 2014 (art. 2 bis) — opérations standardisées d’économies d’énergie"
+    - "Décret n°2014-812 du 16 juillet 2014 (exigences de qualification)"
+    - "Normes : NF EN 12664, NF EN 12667, NF EN 12939, NF EN ISO 22097"

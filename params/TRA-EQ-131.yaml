@@ -1,0 +1,52 @@
+schema_version: "1.0"
+code: "TRA-EQ-131"
+title: "Achat/location longue durée de vélos-cargos à assistance électrique neufs"
+description: "Montant en kWh cumac par vélo-cargo AE neuf, acquis ou loué (contrat ≥ 24 mois), pour personnes morales ou physiques avec SIREN ≥ 3 mois."
+
+units:
+  base_input: "vélo(x)"
+  rate: "kWhcumac/vélo"
+  output: "kWhcumac"
+
+inputs:
+  - name: nb_velos
+    label: "Nombre de vélos-cargos (N)"
+    type: number
+    min: 1
+    step: 1
+    default: 1
+
+calcul_standard:
+  kind: multiplication
+  base_input: nb_velos
+  rate: 83000
+  output:
+    name: kwh_cumac
+    round: 0
+
+bonifications: []
+
+eligibility_details: |
+  • Bénéficiaires : personnes morales ou physiques disposant d’un n° SIREN depuis > 3 mois.
+  • Vélo-cargo éligible : VAE au sens R.311-1 (cat. 6.11), cadre conçu pour transport (caisse/plateforme AV/AR), batterie ≥ 400 Wh,
+    inscrit au FNUCI, conforme EN 15194 + (au moins une) NF R30-050 / DIN 79010 / EN 17860 (PTAC ≥ 175 kg), et aux directives 2006/42/CE, 2011/65/UE, 2014/30/UE, 2023/1542/UE.
+  • Location : durée minimale 24 mois (hors reconduction tacite).
+  • Plafond de N :
+      – Cas général : N ≤ effectif salarié déclaré (dernier exercice clos) ou document équivalent ;
+      – Personne morale de droit public / association sans liasse fiscale : N ≤ effectif salarié/bénévole attesté sur l’honneur, avec un plafond absolu de 15 vélos.
+  • Preuves & pièces :
+      – Certificat d’identification du cycle au nom de l’acquéreur / loueur (EN 15194, normes/dir. listées),
+      – Rapport de tests confirmant PTAC ≥ 175 kg,
+      – Documentation technique (photo contractuelle, modèle, batterie, cadre, dimensions, PTAC, roues, freins),
+      – Liasse fiscale (ou équivalent) ou attestation sur l’honneur des effectifs,
+      – Extrait K/Kbis/RNE (ou équivalent) prouvant la date de création,
+      – Photos : vélo complet + marquage FNUCI lisible,
+      – Feuille récapitulative (ministère chargé de l’énergie).
+  • Calcul : 83 000 kWh cumac par vélo × N (sous réserve du plafond N ci-dessus).
+
+meta:
+  lifetime_years: 6
+  valid_from: null
+  valid_to: "2030-08-01"
+  references:
+    - "Fiche CEE TRA-EQ-131 — Vélos-cargos à assistance électrique neufs (opérations jusqu’au 01/08/2030)"

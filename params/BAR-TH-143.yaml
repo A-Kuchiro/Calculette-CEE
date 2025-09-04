@@ -1,0 +1,69 @@
+schema_version: "1.0"
+code: "BAR-TH-143"
+title: "Système solaire combiné (SSC) – France métropolitaine"
+description: "Mise en place d’un système solaire combiné (chauffage + ECS) en maison individuelle existante."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+# Forfait par équipement selon la zone
+calcul_standard:
+  kind: fixed_by_factor
+  factor_input: zone_climatique
+  rates:
+    H1: 134800
+    H2: 121000
+    H3: 100500
+  output:
+    name: kwh_cumac
+    round: 0
+
+# Bonification : porte le volume total à 769 200 kWhc (toutes zones) si remplacement d'une chaudière individuelle charbon/fioul/gaz
+bonifications:
+  - name: "Bonification — remplacement chaudière (charbon/fioul/gaz)"
+    applies: replacement
+    enabled_by_default: false
+    kind: multiplication
+    rate: 769200
+    output:
+      name: kwh_cumac_total_bonifie
+      round: 0
+
+eligibility_details: |
+  • Secteur : maisons individuelles existantes (France métropolitaine).
+  • Système : SSC (chauffage + ECS), couplé à des émetteurs basse température.
+  • Capteurs :
+    - productivité ≥ 600 W/m² de surface d’entrée (η0 × G avec G = 1 000 W/m², ΔT = 0),
+    - surface hors-tout installée ≥ 8 m²,
+    - certification CSTBat ou SolarKeymark, ou performances/qualité équivalentes établies par organisme accrédité
+      (EN 12975-1, NF EN ISO 9806, NF EN ISO/IEC 17025, NF EN 45011).
+  • Ballons : capacité de stockage solaire strictement > 400 L (un ou plusieurs ballons).
+  • Pose par professionnel qualifié (décret n°2014-812 — travaux relevant du 2°).
+  • Preuves : mise en place d’un SSC + productivité des capteurs (W/m²). À défaut : marque/référence + doc fabricant
+    confirmant SSC et productivité des capteurs.
+  • Documents spécifiques : certification capteurs (CSTBat/SolarKeymark ou équivalent) ; décision de qualification/certification du professionnel.
+  • Durée de vie conventionnelle : 20 ans.
+  • Validité : fiche abrogée à compter du 1er janvier 2028.
+  • Barème cumac (par équipement) : H1 = 134 800 ; H2 = 121 000 ; H3 = 100 500.
+  • Bonification (toutes zones) si remplacement d’une chaudière individuelle au charbon/fioul/gaz :
+    → volume total porté à **769 200 kWh cumac**.
+
+meta:
+  lifetime_years: 20
+  valid_from: null
+  valid_to: "2028-01-01"
+  references:
+    - "Fiche CEE BAR-TH-143 — Système solaire combiné (abrogation 01/01/2028)"
+    - "EN 12975-1 ; NF EN ISO 9806 ; NF EN ISO/IEC 17025 ; NF EN 45011"
+    - "Décret n°2014-812 du 16 juillet 2014 — qualification"

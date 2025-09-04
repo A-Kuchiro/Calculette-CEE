@@ -1,0 +1,175 @@
+schema_version: "1.0"
+code: "BAT-EQ-127"
+title: "Luminaire à modules LED"
+description: "Mise en place de luminaires à modules LED en bâtiments tertiaires (hors remplacement d’halogènes)."
+
+units:
+  base_input: "W"
+  rate: "kWhcumac/W"
+  output: "kWhcumac"
+
+inputs:
+  - name: secteur
+    label: "Secteur"
+    type: select
+    options:
+      - { value: "hotellerie",   label: "Hôtellerie" }
+      - { value: "sante_entrep_dept_com400plus", label: "Santé / Entrepôts / Commerce ≥ 400 m²" }
+      - { value: "enseignement", label: "Enseignement" }
+      - { value: "commerce_lt400", label: "Commerce < 400 m²" }
+      - { value: "bureaux_restauration", label: "Bureaux / Restauration" }
+      - { value: "autres",       label: "Autres" }
+
+  - name: puissance_w
+    label: "Puissance totale installée (W)"
+    type: number
+    min: 1
+    max: 10000000
+    step: 1
+    default: 1000
+
+  - name: qualite_couleur
+    label: "Qualité de rendu des couleurs"
+    type: select
+    options:
+      - { value: "irc_lt90",        label: "IRC < 90" }
+      - { value: "irc_ge90_r9pos",  label: "IRC ≥ 90 avec R9 > 0" }
+
+  - name: efficacite
+    label: "Efficacité lumineuse du luminaire (lm/W)"
+    type: number
+    min: 80
+    max: 300
+    step: 1
+    default: 150
+
+# Calcul : (taux kWhc/W selon bande d’efficacité et secteur) × puissance installée (W)
+# On utilise un type 'band_table_times_base' (équivalent à band_table + multiplication par 'base_input').
+calcul_standard:
+  variants:
+    # --- Cas 1 : IRC < 90 ---
+    - when: { qualite_couleur: "irc_lt90" }
+      block:
+        kind: band_table_times_base
+        base_input: puissance_w
+        band_input: efficacite
+        factor_input: secteur
+        bands:
+          - name: "120 ≤ lm/W < 140"
+            min: 120
+            max: 140
+            rates:
+              hotellerie: 41
+              sante_entrep_dept_com400plus: 37
+              enseignement: 24
+              commerce_lt400: 38
+              bureaux_restauration: 29
+              autres: 24
+          - name: "140 ≤ lm/W < 160"
+            min: 140
+            max: 160
+            rates:
+              hotellerie: 42
+              sante_entrep_dept_com400plus: 38
+              enseignement: 24
+              commerce_lt400: 39
+              bureaux_restauration: 29
+              autres: 24
+          - name: "160 ≤ lm/W < 185"
+            min: 160
+            max: 185
+            rates:
+              hotellerie: 53
+              sante_entrep_dept_com400plus: 49
+              enseignement: 31
+              commerce_lt400: 50
+              bureaux_restauration: 37
+              autres: 31
+          - name: "lm/W ≥ 185"
+            min: 185
+            max: null
+            rates:
+              hotellerie: 67
+              sante_entrep_dept_com400plus: 62
+              enseignement: 39
+              commerce_lt400: 63
+              bureaux_restauration: 47
+              autres: 39
+        output: { name: kwh_cumac, round: 0 }
+
+    # --- Cas 2 : IRC ≥ 90 et R9 > 0 ---
+    - when: { qualite_couleur: "irc_ge90_r9pos" }
+      block:
+        kind: band_table_times_base
+        base_input: puissance_w
+        band_input: efficacite
+        factor_input: secteur
+        bands:
+          - name: "108 ≤ lm/W < 126"
+            min: 108
+            max: 126
+            rates:
+              hotellerie: 33
+              sante_entrep_dept_com400plus: 30
+              enseignement: 19
+              commerce_lt400: 31
+              bureaux_restauration: 23
+              autres: 19
+          - name: "126 ≤ lm/W < 144"
+            min: 126
+            max: 144
+            rates:
+              hotellerie: 34
+              sante_entrep_dept_com400plus: 31
+              enseignement: 19
+              commerce_lt400: 32
+              bureaux_restauration: 24
+              autres: 19
+          - name: "144 ≤ lm/W < 167"
+            min: 144
+            max: 167
+            rates:
+              hotellerie: 44
+              sante_entrep_dept_com400plus: 40
+              enseignement: 26
+              commerce_lt400: 41
+              bureaux_restauration: 31
+              autres: 26
+          - name: "lm/W ≥ 167"
+            min: 167
+            max: null
+            rates:
+              hotellerie: 56
+              sante_entrep_dept_com400plus: 52
+              enseignement: 33
+              commerce_lt400: 53
+              bureaux_restauration: 40
+              autres: 33
+        output: { name: kwh_cumac, round: 0 }
+
+bonifications: []
+
+eligibility_details: |
+  • Secteur : bâtiments tertiaires existants. Opérations engagées jusqu’au 01/08/2030. Remplacement de luminaires à halogènes exclu.
+  • Pose par professionnel. Étude de dimensionnement préalable (RGE Études Éclairage) : état des lieux, besoins, implantation, puissance installée (W/m²), économies attendues.
+  • Critères de performance des luminaires LED :
+    – Durée de vie à 25°C ≥ 50 000 h pour Δflux < 20 % (EN 62722-2-1 + TM21),
+    – Efficacité lumineuse (luminaire complet, alim comprise) :
+        • IRC < 90 : ≥ 120 lm/W (≥ 140 lm/W si IK < 10), 
+        • IRC ≥ 90 et R9 > 0 : ≥ 108 lm/W (≥ 126 lm/W si IK < 10),
+    – Facteur de déphasage ≥ 0,9 (EN 61000-3-2) ; THD(I) < 25 % (EN 61000-3-2),
+    – Groupe de risque photobiologique < 2 (NF EN 60598-1),
+    – Luminaire apte à la gradation automatique selon l’éclairage naturel (lorsque possible),
+    – Modules LED & appareillages d’alimentation remplaçables.
+  • Preuves : quantité, puissance, durée de vie, Δflux fin de vie, efficacité (alim incluse), IRC & R9, IK (si < 140 lm/W), cos φ, THD(I), groupe photobio, aptitude à la gradation.
+    À défaut : marque/référence + doc fabricant reprenant ces caractéristiques.
+  • Pièces spécifiques : étude de dimensionnement + justificatif qualification du bureau/pro.
+  • Durée de vie conventionnelle (années) : Hôtellerie 17 ; Restauration 33 ; Commerces <400 m² 17 ; Bureaux 33 ; Santé 17 ; Enseignement 42 ; Entrepôts/plateformes 17 ; Commerces ≥400 m² 17.
+  • Barème cumac : **taux (kWhc/W) selon secteur et bande d’efficacité** × **puissance totale (W)**. Aucune bonification.
+
+meta:
+  lifetime_years: null
+  valid_from: null
+  valid_to: "2030-08-01"
+  references:
+    - "Fiche CEE BAT-EQ-127 — Luminaire à modules LED (applicable jusqu’au 01/08/2030)"

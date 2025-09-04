@@ -1,0 +1,55 @@
+schema_version: "1.0"
+code: "BAR-TH-148"
+title: "Chauffe-eau thermodynamique à accumulation"
+description: "Mise en place d’un chauffe-eau thermodynamique individuel à accumulation (bâtiments résidentiels existants)."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: type_logement
+    label: "Type de logement"
+    type: select
+    options:
+      - { value: "maison", label: "Maison individuelle" }
+      - { value: "appartement", label: "Appartement" }
+
+# Forfait par équipement selon le type de logement
+calcul_standard:
+  kind: fixed_by_factor
+  factor_input: type_logement
+  rates:
+    maison: 14700
+    appartement: 11800
+  output:
+    name: kwh_cumac
+    round: 0
+
+bonifications: []
+
+eligibility_details: |
+  • Secteur : bâtiments résidentiels existants.
+  • Mise en œuvre : professionnel qualifié (décret n°2014-812 — travaux relevant du 6°).
+  • Efficacité énergétique ECS (règlement délégué (UE) n°814/2013) pour le profil de soutirage déclaré :
+    - M ≥ 95 % ; L ≥ 100 % ; XL ≥ 110 %.
+  • Preuves : mise en place d’un CET à accumulation + efficacité énergétique pour le chauffage de l’eau selon (UE) 814/2013
+    pour le profil M/L/XL déclaré.
+    À défaut : marque/référence + document fabricant confirmant qu’il s’agit d’un CET à accumulation et précisant l’efficacité
+    énergétique (profil déclaré).
+  • Document spécifique : décision de qualification/certification du professionnel.
+  • Durée de vie conventionnelle : 17 ans.
+  • Validité : opérations engagées avant le 1er novembre 2030.
+  • Barème cumac (par équipement) :
+    - Maison individuelle : 14 700 kWh cumac
+    - Appartement        : 11 800 kWh cumac
+
+meta:
+  lifetime_years: 17
+  valid_from: null
+  valid_to: "2030-11-01"
+  references:
+    - "Fiche CEE BAR-TH-148 — Chauffe-eau thermodynamique à accumulation (applicable jusqu’au 01/11/2030)"
+    - "Règlement délégué (UE) n°814/2013 — exigences d’écoconception (ECS)"
+    - "Décret n°2014-812 du 16 juillet 2014 — exigences de qualification"

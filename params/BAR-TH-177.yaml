@@ -1,0 +1,73 @@
+schema_version: "1.0"
+code: "BAR-TH-177"
+title: "Rénovation globale d’un bâtiment résidentiel collectif (France métropolitaine)"
+description: "Approche globale : bouquet de travaux optimal pour un bâtiment résidentiel collectif. Calcul sur Shab après rénovation."
+
+units:
+  base_input: "m²"
+  rate: "kWhcumac/m²"
+  output: "kWhcumac"
+
+inputs:
+  - name: shab_apres
+    label: "Surface habitable du bâtiment après rénovation (Shab, m²)"
+    type: number
+    min: 1
+    max: 1000000
+    step: 1
+    default: 1000
+
+# Montant = 2 100 kWhc/m² × Shab après
+calcul_standard:
+  kind: multiplication
+  base_input: shab_apres
+  rate: 2100
+  output:
+    name: kwh_cumac
+    round: 0
+
+# Bonification de la fiche : multiplicateur 3 (remplacement complet fossile -> renouvelable) ou 2 (autres travaux)
+bonifications:
+  - name: "Bonification BAR-TH-177 (travaux collectifs)"
+    applies: scale
+    enabled_by_default: false
+    kind: scale
+    inputs:
+      - name: scenario_bonif
+        label: "Type de travaux (au sens de la bonification)"
+        type: select
+        options:
+          - { value: "renouvelable_remplacement_total", label: "Remplacement de tous les équipements chauffage/ECS charbon/fioul/gaz par un système renouvelable" }
+          - { value: "autres_travaux",                  label: "Autres travaux (hors remplacement total fossile → renouvelable)" }
+    scale_table:
+      renouvelable_remplacement_total: 3.0
+      autres_travaux: 2.0
+    output:
+      name: multiplicateur
+      round: 2
+
+eligibility_details: |
+  • Secteur : bâtiments résidentiels collectifs existants (≥ 3 foyers fiscaux/logements). Fiche applicable aux opérations engagées jusqu’au 31/10/2029.
+  • Audit énergétique préalable (Arrêté du 17/11/2020), réalisé par un organisme répondant au décret du 14/01/2020 (non sous-traitable pour la bonification).
+  • Objectifs énergétiques minimaux (définis par l’audit) :
+    - Cep projet < 331 kWh/m².an (usages : chauffage, refroidissement, ECS, éclairage, auxiliaires),
+    - Gain ≥ 35 % sur Cep (avant → après travaux).
+  • Interdictions/contraintes équipements :
+    - Pas d’installation de chaudières charbon/fioul.
+    - Pas d’installation d’un système incluant ≥ 1 chaudière gaz couvrant > 30 % des besoins annuels (hors raccordement réseau de chaleur).
+  • GES : émissions annuelles après rénovation (rapportées à la surface de référence) ≤ émissions initiales.
+  • Non-cumul : non cumulable avec d’autres fiches valorisant les mêmes postes sur la même opération (chauffage/régulation, ECS, ventilation, isolation, réseaux, GTB).
+  • Calcul cumac : montant = 2 100 kWhc/m² × Shab après rénovation.
+  • Bonification (travaux sur parties communes ou travaux d’intérêt collectif sur parties privatives) :
+    - ×3 si remplacement **de tous** les équipements de chauffage/ECS charbon/fioul/gaz par un **système renouvelable** (appoint fossile possible si conditions de la fiche respectées),
+    - ×2 pour les autres travaux éligibles.
+    - L’audit justifie l’atteinte des performances ; la visite est réalisée par l’entreprise d’audit (déplacement physique requis) et l’audit n’est pas sous-traitable pour la bonification.
+  • Preuves & pièces spécifiques (exemples) : rapport d’audit + fichier source (.xml), listes travaux préconisés/réalisés et niveaux, entreprises & qualifications, attestations fiscales (≥ 3 foyers fiscaux), DP éventuelles, accord de copropriété le cas échéant.
+
+meta:
+  lifetime_years: 30
+  valid_from: null
+  valid_to: "2029-10-31"
+  references:
+    - "Fiche CEE BAR-TH-177 — Rénovation globale bâtiment résidentiel collectif (abrogation 31/10/2029)"
+    - "Arrêté 17/11/2020 — audit énergétique ; Décret n°2014-812"

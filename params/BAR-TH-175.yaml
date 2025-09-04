@@ -1,0 +1,160 @@
+schema_version: "1.0"
+code: "BAR-TH-175"
+title: "Rénovation d’ampleur d’un appartement (France métropolitaine)"
+description: "Rénovation thermique d’ampleur d’un appartement existant (audit préalable, travaux en 1 ou 2 étapes)."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: etape
+    label: "Étape de travaux"
+    type: select
+    options:
+      - { value: "premiere_ou_unique", label: "Première ou unique étape" }
+      - { value: "seconde",            label: "Seconde étape" }
+
+  - name: nb_sauts
+    label: "Nombre de sauts de classe (étape en cours)"
+    type: select
+    options:
+      - { value: "2",      label: "2 sauts" }
+      - { value: "3",      label: "3 sauts" }
+      - { value: "4plus",  label: "4 sauts ou plus" }
+
+  - name: nb_sauts_etape1
+    label: "Sauts de classe réalisés à la première étape"
+    type: select
+    options:
+      - { value: "2",     label: "2 sauts" }
+      - { value: "3",     label: "3 sauts" }
+    default: "2"
+
+  - name: nb_sauts_total
+    label: "Sauts de classe cumulé (après seconde étape)"
+    type: select
+    options:
+      - { value: "3",     label: "3 sauts" }
+      - { value: "4plus", label: "4 sauts ou plus" }
+    default: "4plus"
+
+  - name: shab
+    label: "Surface habitable Shab (m²) — avant la 1ère (ou l’unique) étape"
+    type: number
+    min: 1
+    max: 1000
+    step: 1
+    default: 60
+
+# Variantes : 1) 1ère/unique étape → montant_base(sauts) × facteur_surface
+#             2) 2e étape → [montant_base(sauts_totaux) − montant_base(sauts_étape1)] × facteur_surface
+calcul_standard:
+  variants:
+    - when:
+        etape: "premiere_ou_unique"
+      block:
+        kind: zone_rate_times_band_factor
+        factor_input: nb_sauts
+        zone_rates:
+          "2":     360200
+          "3":     447900
+          "4plus": 568600
+        band_input: shab
+        bands:
+          - { name: "Shab < 35",          min: null, max: 35,   factor: 0.4 }
+          - { name: "35 ≤ Shab < 60",     min: 35,  max: 60,   factor: 0.5 }
+          - { name: "60 ≤ Shab < 90",     min: 60,  max: 90,   factor: 0.8 }
+          - { name: "90 ≤ Shab < 110",    min: 90,  max: 110,  factor: 1.0 }
+          - { name: "110 ≤ Shab ≤ 130",   min: 110, max: 131,  factor: 1.2 }
+          - { name: "Shab > 130",         min: 130, max: null, factor: 1.3 }
+        output:
+          name: kwh_cumac
+          round: 0
+
+    - when:
+        etape: "seconde"
+      block:
+        kind: delta_rate_by_factor_times_band
+        factor_input: nb_sauts_total        # sauts cumulés après seconde étape
+        prev_factor_input: nb_sauts_etape1  # sauts réalisés à l’étape 1
+        rates:
+          "2":     360200
+          "3":     447900
+          "4plus": 568600
+        band_input: shab
+        bands:
+          - { name: "Shab < 35",          min: null, max: 35,   factor: 0.4 }
+          - { name: "35 ≤ Shab < 60",     min: 35,  max: 60,   factor: 0.5 }
+          - { name: "60 ≤ Shab < 90",     min: 60,  max: 90,   factor: 0.8 }
+          - { name: "90 ≤ Shab < 110",    min: 90,  max: 110,  factor: 1.0 }
+          - { name: "110 ≤ Shab ≤ 130",   min: 110, max: 131,  factor: 1.2 }
+          - { name: "Shab > 130",         min: 130, max: null, factor: 1.3 }
+        output:
+          name: kwh_cumac
+          round: 0
+
+# Bonification "Coup de pouce Rénovation d’ampleur"
+# → Multiplicateur (×2 si signataire de la charte & ménage modeste ; ×4 si l’Agence L.321-1 est demandeur & ménage modeste).
+# À activer manuellement si conditions remplies (périodes, éligibilité charte/Agence, etc.).
+bonifications:
+  - name: "Coup de pouce Rénovation d’ampleur"
+    applies: scale
+    enabled_by_default: false
+    kind: scale
+    inputs:
+      - name: demandeur
+        label: "Demandeur"
+        type: select
+        options:
+          - { value: "autre",  label: "Autre demandeur (hors charte/Agence)" }
+          - { value: "charte", label: "Signataire charte Coup de pouce" }
+          - { value: "agence", label: "Agence (L.321-1 CCH)" }
+      - name: categorie_menage
+        label: "Catégorie de ménage"
+        type: select
+        options:
+          - { value: "modeste", label: "Ménage modeste (II ter art. 3-1)" }
+          - { value: "autre",   label: "Autre ménage" }
+    scale_table:
+      autre:
+        modeste: 1.0
+        autre:   1.0
+      charte:
+        modeste: 2.0
+        autre:   1.0
+      agence:
+        modeste: 4.0
+        autre:   1.0
+    output:
+      name: multiplicateur
+      round: 2
+
+eligibility_details: |
+  • Secteur : bâtiments résidentiels collectifs existants — France métropolitaine. Fiche abrogée à compter du 1er janvier 2029.
+  • Audit énergétique à l’échelle de l’appartement (Arrêté 17/11/2020). Dérogations possibles jusqu'au 31/12/2025 (OPAH/PIG).
+  • Travaux uniquement sur parties privatives.
+  • Travaux en 1 ou 2 étapes pour logements de classe E/F/G avant étape 1.
+    - Étape 1 : saut ≥ 2 classes ; ≥ 2 postes d’enveloppe parmi 4 (≥25% surfaces par poste).
+      R mini (sauf contraintes) : combles perdus ≥ 7 ; rampant ≥ 6 ; toiture-terrasse ≥ 6,5 ; murs ITI ≥ 3,7 ; murs ITE ≥ 4,4 ; plancher bas ≥ 3 (m²·K/W).
+      Menuiseries : fenêtres de toit Uw ≤ 1,5 & Sw ≤ 0,36 ; autres : (Uw ≤ 1,3 & Sw ≥ 0,3) OU (Uw ≤ 1,7 & Sw ≥ 0,36).
+      Double-fenêtre : Uw ≤ 1,8 ; Sw ≥ 0,32.
+    - Étape 2 : atteindre ≥ classe C si F/G initial, ≥ classe B si E initial. Deux étapes possibles seulement si l’étape 1 fait au plus 3 sauts.
+  • Contraintes GES : cf. points f), g), h). Si saut ≥ 4 classes (audit ≥ 01/04/2024) : respecter le critère “déperditions thermiques” (Arrêté 03/10/2023).
+  • Non-cumul : pas cumulable avec d’autres fiches sur les postes valorisés. Cumulable avec elle-même (seconde étape) via la règle du delta.
+  • Preuves & documents spécifiques : rapport d’audit (et MAJ), listes travaux/niveaux/entreprises/qualifications, etc.
+  • Barème cumac :
+    - Montant de base selon **nombre de sauts** : 2 → 360 200 ; 3 → 447 900 ; 4+ → 568 600 (kWhc).
+    - **Facteur surface Shab** (avant 1re étape) : <35 → 0,4 ; 35–<60 → 0,5 ; 60–<90 → 0,8 ; 90–<110 → 1,0 ; 110–≤130 → 1,2 ; >130 → 1,3.
+    - **2e étape** : (Montant_base[sauts cumulés] − Montant_base[sauts étape 1]) × facteur_surface.
+  • Coup de pouce Rénovation d’ampleur (à activer si conditions remplies) :
+    - Signataire charte : ×2 pour ménages modestes ; Agence L.321-1 : ×4 pour ménages modestes (non cumulable avec autres bonifications visées).
+
+meta:
+  lifetime_years: 30
+  valid_from: null
+  valid_to: "2029-01-01"
+  references:
+    - "Fiche CEE BAR-TH-175 — Rénovation d’ampleur d’un appartement (abrogation 01/01/2029)"
+    - "Arrêté 17/11/2020 — audit énergétique ; Décret n°2014-812 ; Arrêté 03/10/2023 (déperditions thermiques)"

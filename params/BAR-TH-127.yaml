@@ -1,0 +1,167 @@
+schema_version: "1.0"
+code: "BAR-TH-127"
+title: "Ventilation mécanique simple flux hygroréglable (VMC/VMBP)"
+description: "Système VMC simple flux hygroréglable (type A ou B) ou VMBP collectif simple flux hygroréglable — France métropolitaine."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: type_installation
+    label: "Type d’installation"
+    type: select
+    options:
+      - { value: "collective_vmc", label: "Collective — VMC simple flux hygroréglable" }
+      - { value: "collective_vmbp", label: "Collective — VMBP simple flux hygroréglable" }
+      - { value: "individuelle",   label: "Individuelle — VMC simple flux hygroréglable" }
+
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+  - name: type_hygro
+    label: "Type hygroréglable"
+    type: select
+    options:
+      - { value: "A", label: "Type A (bouches d’extraction hygro)" }
+      - { value: "B", label: "Type B (bouches d’extraction + entrées d’air hygro)" }
+
+  - name: caisson_type
+    label: "Type de caisson"
+    type: select
+    options:
+      - { value: "basse_conso",    label: "Basse consommation" }
+      - { value: "standard",       label: "Standard" }
+      - { value: "basse_pression", label: "Basse pression (collectif uniquement)" }
+
+  - name: nb_logements
+    label: "Nombre de logements (collectif)"
+    type: number
+    min: 1
+    max: 100000
+    step: 1
+    default: 10
+
+  - name: surface_habitable
+    label: "Surface habitable (m²) — individuel"
+    type: number
+    min: 1
+    max: 1000
+    step: 1
+    default: 90
+
+# Variantes de calcul selon le contexte
+calcul_standard:
+  variants:
+
+    # 1) COLLECTIF — VMC simple flux hygroréglable
+    - when:
+        type_installation: "collective_vmc"
+      block:
+        kind: zone_rate_times_band_factor      # on n'utilise pas de bande ici, mais ce type accepte aussi R + base
+        factor_input: zone_climatique
+        zone_rates:                            # kWh cumac par logement (avant R)
+          H1: 21800
+          H2: 17800
+          H3: 11900
+        # Multiplicateur de base (nombre de logements)
+        base_input: nb_logements
+        # Coefficient R dépendant de 2 entrées : type_hygro (A/B) et caisson_type
+        r_inputs: [type_hygro, caisson_type]
+        r_table:
+          A:
+            basse_conso:    0.96
+            standard:       0.91
+            basse_pression: 0.76
+          B:
+            basse_conso:    1.00
+            standard:       0.95
+            basse_pression: 0.78
+        output:
+          name: kwh_cumac
+          round: 0
+
+    # 2) COLLECTIF — VMBP simple flux hygroréglable (basse pression)
+    - when:
+        type_installation: "collective_vmbp"
+      block:
+        kind: zone_rate_times_band_factor
+        factor_input: zone_climatique
+        zone_rates:                            # kWh cumac par logement (avant R)
+          H1: 21800
+          H2: 17800
+          H3: 11900
+        base_input: nb_logements
+        r_inputs: [type_hygro, caisson_type]
+        r_table:
+          A:
+            basse_pression: 0.76
+          B:
+            basse_pression: 0.78
+        output:
+          name: kwh_cumac
+          round: 0
+
+    # 3) INDIVIDUEL — VMC simple flux hygroréglable
+    - when:
+        type_installation: "individuelle"
+      block:
+        kind: zone_rate_times_band_factor
+        factor_input: zone_climatique
+        zone_rates:                            # kWh cumac forfaitaires de base
+          H1: 31600
+          H2: 25900
+          H3: 17200
+        # Facteur-bande selon S habitable
+        band_input: surface_habitable
+        bands:
+          - { name: "<35",      min: null, max: 35,   factor: 0.3 }
+          - { name: "35–<60",   min: 35,  max: 60,   factor: 0.5 }
+          - { name: "60–<70",   min: 60,  max: 70,   factor: 0.6 }
+          - { name: "70–<90",   min: 70,  max: 90,   factor: 0.7 }
+          - { name: "90–<110",  min: 90,  max: 110,  factor: 1.0 }
+          - { name: "110–≤130", min: 110, max: 131,  factor: 1.1 }
+          - { name: ">130",     min: 130, max: null, factor: 1.6 }
+        # Coefficient R dépendant d’1 entrée : type_hygro (A/B)
+        r_inputs: [type_hygro]
+        r_table:
+          A: 0.9
+          B: 1.0
+        output:
+          name: kwh_cumac
+          round: 0
+
+bonifications: []
+
+eligibility_details: |
+  • Secteur : bâtiments résidentiels existants — France métropolitaine.
+  • Mise en œuvre par un professionnel qualifié (décret n°2014-812 — travaux relevant du 8°).
+  • Avis technique CCFAT du système (en cours de validité à la date d’engagement).
+  • INDIVIDUEL (VMC hygro A ou B) :
+    - Caisson classe énergie ≥ B (UE 1254/2014).
+    - Caisson basse consommation : Pabs pondérée ≤ 15 WThC (config. T4, 1 SDB + 1 WC).
+  • COLLECTIF :
+    - VMC hygro : Pabs pondérée ≤ 0,25 WThC/(m³/h). Basse conso si ≤ 0,10 WThC/(m³/h) et courbe aéraulique montante.
+    - VMBP hygro : Pabs pondérée ≤ 0,12 WThC/(m³/h).
+  • Barèmes cumac & coefficients R (fiche vA58-6, 01/04/2024) :
+    - Collectif (par logement) : H1=21 800 ; H2=17 800 ; H3=11 900.
+    - Individuel : H1=31 600 ; H2=25 900 ; H3=17 200 ; facteur surface : 0,3 / 0,5 / 0,6 / 0,7 / 1 / 1,1 / 1,6 (selon S).
+    - R (collectif) Type A : 0,96 (basse conso) ; 0,91 (standard) ; 0,76 (basse pression).
+    - R (collectif) Type B : 1,00 (basse conso) ; 0,95 (standard) ; 0,78 (basse pression).
+    - R (individuel) : 0,9 (Type A), 1,0 (Type B). En individuel, seul le **caisson basse consommation** est applicable.
+  • Durée de vie conventionnelle : 17 ans.
+  • Validité fiche : opérations engagées jusqu’au 30 juin 2028.
+
+meta:
+  lifetime_years: 17
+  valid_from: null
+  valid_to: "2028-06-30"
+  references:
+    - "BAR-TH-127 vA58-6 (01/04/2024) — Ministère de la Transition écologique"
+    - "Règlement UE n°1254/2014 — ventilation (classe énergie)"

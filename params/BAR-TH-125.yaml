@@ -1,0 +1,141 @@
+schema_version: "1.0"
+code: "BAR-TH-125"
+title: "VMC double flux autoréglable ou modulée — haute performance"
+description: "Système de ventilation double flux autoréglable (individuel/collectif) ou modulé (individuel) — France métropolitaine."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: type_installation
+    label: "Type d’installation"
+    type: select
+    options:
+      - { value: "collective_autoreglable", label: "Collective — double flux autoréglable" }
+      - { value: "individuelle_autoreglable", label: "Individuelle — double flux autoréglable" }
+      - { value: "individuelle_modulee", label: "Individuelle — double flux modulée (bouches hygroréglables)" }
+
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+  # Utilisé pour le collectif (par logement)
+  - name: nb_logements
+    label: "Nombre de logements (collectif)"
+    type: number
+    min: 1
+    max: 100000
+    step: 1
+    default: 10
+
+  # Utilisé pour l’individuel (facteur selon S habitable)
+  - name: surface_habitable
+    label: "Surface habitable (m²) — individuel"
+    type: number
+    min: 1
+    max: 1000
+    step: 1
+    default: 90
+
+# Trois variantes de calcul selon le type d’installation
+calcul_standard:
+  variants:
+    # 1) Collectif — autoréglable : par logement * barème zone
+    - when:
+        type_installation: "collective_autoreglable"
+      block:
+        kind: multiplication
+        base_input: nb_logements
+        factor_input: zone_climatique
+        rates:
+          H1: 23000
+          H2: 18800
+          H3: 12500
+        output:
+          name: kwh_cumac
+          round: 0
+
+    # 2) Individuel — autoréglable : barème zone × facteur(S)
+    - when:
+        type_installation: "individuelle_autoreglable"
+      block:
+        kind: zone_rate_times_band_factor
+        factor_input: zone_climatique            # pour le taux de base
+        band_input: surface_habitable            # pour le facteur correctif
+        zone_rates:
+          H1: 39700
+          H2: 32500
+          H3: 21600
+        bands:
+          - { name: "<35",           min: null, max: 35,   factor: 0.3 }
+          - { name: "35–<60",        min: 35,  max: 60,   factor: 0.5 }
+          - { name: "60–<70",        min: 60,  max: 70,   factor: 0.6 }
+          - { name: "70–<90",        min: 70,  max: 90,   factor: 0.7 }
+          - { name: "90–<110",       min: 90,  max: 110,  factor: 1.0 }
+          - { name: "110–≤130",      min: 110, max: 131,  factor: 1.1 }  # borne sup ouverte -> 131 pour inclure 130
+          - { name: ">130",          min: 130, max: null, factor: 1.6 }
+        output:
+          name: kwh_cumac
+          round: 0
+
+    # 3) Individuel — modulée : barème zone × facteur(S)
+    - when:
+        type_installation: "individuelle_modulee"
+      block:
+        kind: zone_rate_times_band_factor
+        factor_input: zone_climatique
+        band_input: surface_habitable
+        zone_rates:
+          H1: 42000
+          H2: 34400
+          H3: 22900
+        bands:
+          - { name: "<35",           min: null, max: 35,   factor: 0.3 }
+          - { name: "35–<60",        min: 35,  max: 60,   factor: 0.5 }
+          - { name: "60–<70",        min: 60,  max: 70,   factor: 0.6 }
+          - { name: "70–<90",        min: 70,  max: 90,   factor: 0.7 }
+          - { name: "90–<110",       min: 90,  max: 110,  factor: 1.0 }
+          - { name: "110–≤130",      min: 110, max: 131,  factor: 1.1 }
+          - { name: ">130",          min: 130, max: null, factor: 1.6 }
+        output:
+          name: kwh_cumac
+          round: 0
+
+bonifications: []
+
+eligibility_details: |
+  • Secteur : bâtiments résidentiels existants — France métropolitaine.
+  • Mise en œuvre : professionnel qualifié (décret n°2014-812), travaux relevant du 8°.
+  • INDIVIDUEL (un seul logement) :
+    - Centrale double flux autoréglable ou à modulation hygroréglable.
+    - Classe d’efficacité énergétique ≥ A (règlement UE n°1254/2014).
+    - Rapport de température (efficacité thermique) selon NF EN 13141-7 ≥ 85 % et certifié (ou NF 205).
+    - Puissance électrique absorbée pondérée du caisson ≤ 47,6 WThC en configuration T4 (1 SDB + 1 WC) et certifiée (ou NF 205).
+    - Si modulée hygroréglable : avis technique CSTB (CCFAT) en cours de validité à la date d’engagement.
+  • COLLECTIF (plusieurs logements) :
+    - Centrale double flux collective autoréglable.
+    - Échangeur collectif : rendement en température ≥ 75 % (NF EN 308) et certifié (ou Eurovent AAHE/AARE).
+  • Preuves : composition système (caisson DF avec échangeur, gaines, bouches insufflation + extraction autoréglables / hygro),
+    classe énergétique (UE 1254/2014), rapport de température (NF EN 13141-7, n° certificat ou NF 205),
+    puissance électrique pondérée (WThC, config T4, n° certificat NF 205 si applicable).
+    Pour collectif : rendement échangeur (NF EN 308) certifié.
+  • Document justificatif spécifique : si individuel modulé hygroréglable → avis technique (CSTB/CCFAT).
+  • Durée de vie conventionnelle : 17 ans.
+  • Validité fiche : opérations engagées avant le 1er juillet 2028.
+
+meta:
+  lifetime_years: 17
+  valid_from: null
+  valid_to: "2028-07-01"
+  references:
+    - "Fiche CEE BAR-TH-125 — VMC double flux autoréglable/modulée (applicable jusqu’au 01/07/2028)"
+    - "Règlement UE n°1254/2014 — ventilation"
+    - "NF EN 13141-7 — efficacité thermique (individuel)"
+    - "NF EN 308 — rendement échangeur (collectif)"
+    - "Certification NF 205 — réputé satisfaire"

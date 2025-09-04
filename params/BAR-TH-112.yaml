@@ -1,0 +1,117 @@
+schema_version: "1.0"
+code: "BAR-TH-112"
+title: "Appareil indépendant de chauffage au bois"
+description: "Mise en place d’un appareil indépendant de chauffage au bois (poêle, foyer fermé/insert, cuisinière)."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+  - name: etas
+    label: "Efficacité énergétique saisonnière (Etas, %)"
+    type: number
+    min: 50
+    max: 100
+    step: 0.1
+    default: 75
+
+# Barème en tableau par "bandes d’Etas" × "zone"
+calcul_standard:
+  kind: band_table            # nouveau type: choisit un "band" selon etas, puis applique le taux par zone
+  band_input: etas            # champ numérique (en %)
+  factor_input: zone_climatique
+  bands:
+    - name: "66% ≤ Etas < 72%"
+      min: 66
+      max: 72
+      rates:
+        H1: 9400
+        H2: 7700
+        H3: 5100
+    - name: "72% ≤ Etas < 80%"
+      min: 72
+      max: 80
+      rates:
+        H1: 23500
+        H2: 19300
+        H3: 12800
+    - name: "Etas ≥ 80%"
+      min: 80
+      max: null
+      rates:
+        H1: 35300
+        H2: 28900
+        H3: 19200
+  output:
+    name: kwh_cumac
+    round: 0
+
+# Coup de pouce (optionnel, ADDITIF) — uniquement si remplacement d’un chauffage principalement au charbon
+bonifications:
+  - name: "Coup de pouce — remplacement chauffage principalement au charbon"
+    applies: additive
+    enabled_by_default: false
+    base_input: dummy        # ignoré (forfait)
+    kind: fixed_by_factor
+    factor_input: categorie_menage
+    inputs:
+      - name: categorie_menage
+        label: "Catégorie de ménage (Coup de pouce)"
+        type: select
+        options:
+          - { value: "modeste", label: "Ménage modeste" }
+          - { value: "autre", label: "Autre ménage" }
+    rates:
+      modeste: 123100
+      autre: 76900
+    output:
+      name: kwh_cumac_bonus
+      round: 0
+
+eligibility_details: |
+  • Secteur : maisons individuelles existantes.
+  • Mise en œuvre par un professionnel qualifié (RGE — décret n°2014-812).
+  • Deux familles d’appareils :
+    a) Bois (bûches) :
+       - Etas ≥ 66 %
+       - Particules ≤ 40 mg/Nm³ ; COG ≤ 120 mgC/Nm³ ; CO ≤ 1500 mg/Nm³ (≈ 0,12 %) ; NOx ≤ 200 mg/Nm³
+    b) Granulés (pellets) :
+       - Etas ≥ 80 %
+       - Particules ≤ 20 mg/Nm³ ; COG ≤ 60 mgC/Nm³ ; CO ≤ 300 mg/Nm³ (≈ 0,02 %) ; NOx ≤ 200 mg/Nm³
+    • Les concentrations sont à 13 % O₂.
+    • Un appareil labellisé « Flamme verte » est réputé satisfaire les critères d’émissions de polluants.
+  • Mesure Etas & émissions selon :
+    - Poêles : NF EN 13240 / NF EN 14785 / NF EN 15250
+    - Foyers fermés & inserts : NF EN 13229
+    - Cuisinières chauffantes : NF EN 12815
+  • Preuves : type d’appareil ; Etas ; émissions (particules, COG, CO, NOx) et leur norme de mesure ; ou label Flamme verte.
+    À défaut : marque & référence + document fabricant/organisme (EEA) accrédité NF EN ISO/IEC 17065 (COFRAC/EA)
+    précisant Etas & émissions mesurés selon les normes ; document valable jusqu’à 1 an après sa date de fin de validité si mention.
+  • Document spécifique : décision de qualification/certification du professionnel.
+  • Durée de vie conventionnelle : 15 ans.
+  • Validité fiche : abrogée au 1er octobre 2027.
+  • Barème cumac :
+    - 66% ≤ Etas < 72% : H1=9 400 ; H2=7 700 ; H3=5 100
+    - 72% ≤ Etas < 80% : H1=23 500 ; H2=19 300 ; H3=12 800
+    - Etas ≥ 80% : H1=35 300 ; H2=28 900 ; H3=19 200
+  • Coup de pouce (additif) si remplacement d’un chauffage fonctionnant principalement au charbon :
+    - Ménage modeste : +123 100 kWh cumac (toutes zones)
+    - Autre ménage : +76 900 kWh cumac (toutes zones)
+
+meta:
+  lifetime_years: 15
+  valid_from: null
+  valid_to: "2027-10-01"
+  references:
+    - "Fiche CEE BAR-TH-112 — Appareil indépendant de chauffage au bois (abrogation 01/10/2027)"
+    - "Décret n°2014-812 du 16 juillet 2014 — exigences de qualification"
+    - "Normes : NF EN 13240, NF EN 14785, NF EN 15250, NF EN 13229, NF EN 12815, ISO/CEI 17025"

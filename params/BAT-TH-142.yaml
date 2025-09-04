@@ -1,0 +1,94 @@
+schema_version: "1.0"
+code: "BAT-TH-142"
+title: "Système de déstratification d’air (France métropolitaine)"
+description: "Déstratification d’un local de grande hauteur entièrement clos, chauffé par système convectif et/ou radiatif. Calcul par kW de puissance de chauffage."
+
+units:
+  base_input: "kW"
+  rate: "kWhcumac/kW"
+  output: "kWhcumac"
+
+inputs:
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+  - name: p_convectif_kw
+    label: "Puissance convective du système de chauffage (kW)"
+    type: number
+    min: 0
+    max: 100000
+    step: 1
+    default: 0
+
+  - name: p_radiatif_kw
+    label: "Puissance radiative du système de chauffage (kW)"
+    type: number
+    min: 0
+    max: 100000
+    step: 1
+    default: 0
+
+# Standard : part convective
+calcul_standard:
+  kind: multiplication
+  base_input: p_convectif_kw
+  factor_input: zone_climatique
+  rates:
+    H1: 3900
+    H2: 4500
+    H3: 4600
+  output:
+    name: kwh_cumac
+    round: 0
+
+# Part radiative : ajoutée au résultat (activée par défaut)
+bonifications:
+  - name: "Part radiative"
+    applies: additive
+    enabled_by_default: true
+    kind: multiplication
+    base_input: p_radiatif_kw
+    factor_input: zone_climatique
+    rates:
+      H1: 1400
+      H2: 1600
+      H3: 1600
+    output:
+      name: kwh_cumac_radiatif
+      round: 0
+
+eligibility_details: |
+  • Secteur : bâtiment tertiaire existant (opérations engagées jusqu’au 01/08/2030).
+  • Locaux exclus : entrepôts/logistiques/réserves/stockages ; locaux avec consigne de chauffage < 15 °C.
+  • Local éligible : entièrement clos, hauteur sous plafond/faîtage ≥ 5 m ; chauffage convectif et/ou radiatif.
+  • Le système de déstratification :
+    – indépendant du chauffage ; sans apport de chaleur ni récupération ; brasseurs d’air plafonniers non éligibles,
+    – asservi à au moins une mesure de température (zone entre l’appareil et le plafond/faîtage),
+    – vitesses au sol (à 1 m) ≤ 0,2 m/s ; niveau de bruit < 45 dB(A).
+    – Écoulement vertical : aspiration ≤ 1/5 de la hauteur depuis le plafond/faîtage.
+    – Écoulement horizontal : aspiration sur toute la hauteur (≤1 m du sol et ≤1 m du plafond/faîtage) + dispositif de mélange.
+  • Étude/note de dimensionnement obligatoire (OPQIBI 1327 ou 1905 ou équivalents NF X 50-091 / EN 16247) :
+    – hauteur/volume/surface du local ; description chauffage (puissances, nature convective/radiative),
+      éventuelle VMC (débits/pressions, flux de déstratification non orientés vers soufflages),
+      consigne de température, besoin minimal de brassage (m³/h), calepinage, implantation et références des appareils,
+      vitesses d’air, volume brassé, ratio nb appareils/volume brassé, asservissement à la mesure de température.
+    – Datée/signée pro/BE et bénéficiaire ; coordonnées du pro/BE ; adresse précise des travaux.
+  • Déclaration/preuves : mention du type de flux (vertical/horizontal), vitesse au sol, bruit, asservissement, nb d’appareils,
+    somme des puissances nominales du système de chauffage (convectif/radiatif), présence éventuelle de VMC.
+  • Définition des puissances :
+    – Chauffage centralisé : somme des puissances des équipements (≤ puissance nominale chaudière). Si chaudière commune à plusieurs locaux,
+      proratiser la puissance au volume chauffé du local.
+    – Chauffage décentralisé : somme des puissances des équipements du local.
+  • Cumul : si le local est chauffé par convectif ET radiatif, les montants se cumulent (renseigner les deux puissances).
+
+meta:
+  lifetime_years: 15
+  valid_from: null
+  valid_to: "2030-08-01"
+  references:
+    - "Fiche CEE BAT-TH-142 — Système de déstratification d’air (applicable jusqu’au 01/08/2030)"

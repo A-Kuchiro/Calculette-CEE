@@ -1,0 +1,56 @@
+schema_version: "1.0"
+code: "BAT-TH-145"
+title: "Système de régulation basse pression flottante (France métropolitaine)"
+description: "Régulation sur groupe de production de froid adaptant automatiquement la consigne de basse pression/température sortie évaporateur selon le besoin."
+
+units:
+  base_input: "kW"
+  rate: "kWhcumac/kW"
+  output: "kWhcumac"
+
+inputs:
+  - name: application
+    label: "Application du groupe de production de froid"
+    type: select
+    options:
+      - { value: "hors_confort", label: "Réfrigération ou conditionnement d’ambiance hors confort" }
+      - { value: "clim_confort", label: "Climatisation de confort d’un local" }
+
+  - name: puissance_kw
+    label: "Puissance électrique nominale totale du groupe (kW)"
+    type: number
+    min: 1
+    max: 100000
+    step: 1
+    default: 50
+
+calcul_standard:
+  kind: multiplication
+  base_input: puissance_kw
+  factor_input: application
+  rates:
+    hors_confort: 3600
+    clim_confort: 310
+  output:
+    name: kwh_cumac
+    round: 0
+
+bonifications: []
+
+eligibility_details: |
+  • Secteur : bâtiments tertiaires en France métropolitaine (hors Data Centers). Durée de vie conventionnelle : 14 ans.
+  • Objet : mise en place d’un système de régulation permettant d’avoir une basse pression flottante (consigne d’évaporation / T° sortie évaporateur adaptée automatiquement au besoin).
+  • Exclusions : bâtiments neufs CE1 (climatisation de confort) au sens des arrêtés du 26/10/2010 et 28/12/2012.
+  • Étude technique préalable obligatoire (pro/BE) : besoins de froid, caractéristiques du groupe (mono ou multi-compresseurs) et puissance électrique nominale totale (kW).
+  • Preuves : mention de la mise en place de la régulation (ou marque/référence + document fabricant attestant la fonction).
+  • Puissance à retenir : puissance électrique nominale du groupe (plaque signalétique ou doc fabricant). Les compresseurs de secours ne sont pas comptabilisés.
+  • Calcul cumac :
+    – Réfrigération / conditionnement d’ambiance hors confort : 3 600 kWhc par kW × Puissance (kW).
+    – Climatisation de confort : 310 kWhc par kW × Puissance (kW).
+
+meta:
+  lifetime_years: 14
+  valid_from: null
+  valid_to: null
+  references:
+    - "Fiche CEE BAT-TH-145 — Régulation basse pression flottante (tertiaire, hors datacenter)"

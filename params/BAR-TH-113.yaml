@@ -1,0 +1,91 @@
+schema_version: "1.0"
+code: "BAR-TH-113"
+title: "Chaudière biomasse individuelle"
+description: "Mise en place d’une chaudière biomasse individuelle (maisons individuelles existantes)."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+# Forfait par équipement selon la zone (aucune surface)
+calcul_standard:
+  kind: fixed_by_factor
+  factor_input: zone_climatique
+  rates:
+    H1: 41300
+    H2: 33800
+    H3: 26300
+  output:
+    name: kwh_cumac
+    round: 0
+
+# Coup de pouce (optionnel, additif) si remplacement d'une chaudière individuelle au charbon/fioul/gaz
+bonifications:
+  - name: "Coup de pouce — remplacement chaudière charbon/fioul/gaz"
+    applies: additive
+    enabled_by_default: false
+    kind: fixed_by_factor
+    factor_input: categorie_menage
+    inputs:
+      - name: categorie_menage
+        label: "Catégorie de ménage (Coup de pouce)"
+        type: select
+        options:
+          - { value: "modeste", label: "Ménage modeste" }
+          - { value: "autre",   label: "Autre ménage" }
+    rates:
+      modeste: 615400
+      autre: 384600
+    output:
+      name: kwh_cumac_bonus
+      round: 0
+
+eligibility_details: |
+  • Secteur : maisons individuelles existantes.
+  • Mise en œuvre : professionnel qualifié (décret n°2014-812 — travaux relevant du 3°).
+  • Puissance thermique nominale ≤ 70 kW.
+  • Combustible : biomasse ligneuse (bûches, copeaux, granulés, briquettes, sciure).
+  • Régulation : classe IV, V, VI, VII ou VIII (Com. 2014/C 207/02).
+  • Alimentation :
+    - Chaudière à alimentation automatique → associée à un silo ≥ 225 L (neuf ou existant).
+    - Chaudière à alimentation manuelle → associée à un ballon tampon (neuf ou existant).
+  • Efficacité énergétique saisonnière (ηs) selon règlement (UE) 2015/1189 (chauffage locaux, hors régulation) :
+    - Opérations à compter du 01/01/2021 : ηs ≥ 77 % (≤ 20 kW) ; ηs ≥ 78 % (> 20 kW).
+    - Opérations à compter du 01/01/2022 : ηs ≥ 77 % (≤ 20 kW) ; ηs ≥ 79 % (> 20 kW).
+  • Émissions saisonnières (mg/Nm³ à 10 % O₂, selon (UE) 2015/1189) :
+    - Alim. manuelle : Particules ≤ 40 ; CO ≤ 600 ; NOx ≤ 200 ; COG ≤ 20.
+    - Alim. automatique : Particules ≤ 30 ; CO ≤ 400 ; NOx ≤ 200 ; COG ≤ 16.
+    - Label « Flamme verte 7* » réputé satisfaire les exigences d’émissions.
+  • Dimensionnement : note de calcul à T = Tbase (déperditions des pièces desservies), remise au bénéficiaire.
+  • Preuves (mentions) :
+    - mise en place d’une chaudière biomasse ligneuse ; puissance nominale ;
+      régulateur (classe) ; silo (volume) ou ballon tampon ;
+      ηs (règl. (UE) 2015/1189) ; émissions (particules, CO, NOx, COG) selon le même règlement ou label Flamme verte 7*.
+    - À défaut : marque/référence + document fabricant/organisme (EEA) accrédité NF EN ISO/IEC 17065 (COFRAC/EA)
+      précisant silo/ballon tampon, régulateur (classe), puissance, ηs et émissions, ou mention du label Flamme verte 7*.
+  • Documents spécifiques : note de dimensionnement ; décision de qualification/certification du professionnel.
+  • Durée de vie conventionnelle : 17 ans.
+  • Barème cumac (forfait par équipement) : H1=41 300 ; H2=33 800 ; H3=26 300.
+  • Coup de pouce (additif, toutes zones) si remplacement d’une chaudière individuelle au charbon/fioul/gaz :
+    - Ménage modeste : +615 400 kWh cumac
+    - Autre ménage  : +384 600 kWh cumac
+
+meta:
+  lifetime_years: 17
+  valid_from: null
+  valid_to: null
+  references:
+    - "Fiche CEE BAR-TH-113 — Chaudière biomasse individuelle"
+    - "Règlement (UE) 2015/1189 — exigences ηs & émissions"
+    - "Communication 2014/C 207/02 — classes de régulateurs"
+    - "Décret n°2014-812 du 16 juillet 2014 — qualification"

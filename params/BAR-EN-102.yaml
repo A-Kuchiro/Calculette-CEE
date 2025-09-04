@@ -1,0 +1,65 @@
+schema_version: "1.0"
+code: "BAR-EN-102"
+title: "Isolation des murs"
+description: "Mise en place d’un procédé d’isolation (complexe ou sur ossature) sur mur(s) en façade ou en pignon."
+
+units:
+  base_input: "m²"
+  rate: "kWhcumac/m²"
+  output: "kWhcumac"
+
+inputs:
+  - name: surface
+    label: "Surface isolée"
+    type: number
+    min: 1
+    max: 100000
+    step: 0.1
+    default: 50
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+calcul_standard:
+  kind: multiplication
+  base_input: surface
+  factor_input: zone_climatique
+  rates:
+    H1: 1600
+    H2: 1300
+    H3: 880
+  output:
+    name: kwh_cumac
+    round: 0
+
+bonifications: []
+
+eligibility_details: |
+  • Secteur : bâtiments résidentiels existants.
+  • R min : 3,7 m²·K/W (R de l’isolant installé ; l’isolant existant non pris en compte).
+  • Évaluation R : NF EN 12664 / 12667 / 12939 (isolants non réfléchissants) ; NF EN ISO 22097 (réfléchissants).
+  • Mise en œuvre par un professionnel qualifié (exigences décret n°2014-812).
+  • Visite technique préalable du bâtiment (avant devis) ; vérifier adéquation et conservation/dépose de l’existant.
+  • Délai devis → travaux : 7 jours francs minimum avant pose de l’isolant.
+  • Preuves (mentions) : mise en place d’une isolation ; surface installée ; R de l’isolation mise en place ; date de
+    la visite technique. À défaut : marque/référence + surface, complétés par document fabricant/organisme
+    accrédité (NF EN ISO/IEC 17065 — COFRAC/EA) précisant les caractéristiques (R ou λ + épaisseur).
+    Si une date de validité est indiquée, valable jusqu’à 1 an après sa fin de validité. Pour références multi-épaisseurs,
+    indiquer l’épaisseur si R non précisé.
+  • Document spécifique : décision de qualification/certification du professionnel.
+  • Durée de vie conventionnelle : 30 ans.
+  • Validité fiche : abrogée au 1er mai 2027.
+
+meta:
+  lifetime_years: 30
+  valid_from: null
+  valid_to: "2027-05-01"
+  references:
+    - "Fiche CEE BAR-EN-102 — Isolation des murs (abrogation 01/05/2027)"
+    - "Arrêté du 22 décembre 2014 (art. 2 bis) — opérations standardisées d’économies d’énergie"
+    - "Décret n°2014-812 du 16 juillet 2014 — exigences de qualification"
+    - "Normes : NF EN 12664, NF EN 12667, NF EN 12939, NF EN ISO 22097"

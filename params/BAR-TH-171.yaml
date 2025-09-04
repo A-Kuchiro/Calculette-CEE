@@ -1,0 +1,178 @@
+schema_version: "1.0"
+code: "BAR-TH-171"
+title: "Pompe à chaleur de type air/eau"
+description: "Mise en place d’une PAC air/eau en bâtiment résidentiel existant (chauffage seul ou chauffage + ECS)."
+
+units:
+  base_input: "unité"
+  rate: "kWhcumac/unité"
+  output: "kWhcumac"
+
+inputs:
+  - name: type_logement
+    label: "Type de logement"
+    type: select
+    options:
+      - { value: "appartement", label: "Appartement" }
+      - { value: "maison",      label: "Maison individuelle" }
+
+  - name: usage
+    label: "Usage de la PAC"
+    type: select
+    options:
+      - { value: "chauffage",       label: "Chauffage" }
+      - { value: "chauffage_ecs",   label: "Chauffage + ECS" }
+
+  - name: zone_climatique
+    label: "Zone climatique"
+    type: select
+    options:
+      - { value: "H1", label: "H1" }
+      - { value: "H2", label: "H2" }
+      - { value: "H3", label: "H3" }
+
+  - name: surface_chauffee
+    label: "Surface chauffée S (m²)"
+    type: number
+    min: 1
+    max: 1000
+    step: 1
+    default: 90
+
+  - name: etas
+    label: "Efficacité énergétique saisonnière ηs (%)"
+    type: number
+    min: 100
+    max: 400
+    step: 0.1
+    default: 150
+
+# Calcul composite : montant de base par bande d’ηs × facteur_surface(S) × facteur_zone
+calcul_standard:
+  kind: eta_zone_surface_composite
+  eta_input: etas
+  usage_input: usage
+  logement_input: type_logement
+  zone_input: zone_climatique
+  surface_input: surface_chauffee
+
+  # 1) Montants de base (kWhc) par bande d’ηs, selon le type de logement et l’usage
+  eta_bands:
+    - name: "111% ≤ ηs < 140%"
+      min: 111
+      max: 140
+      amounts:
+        appartement:
+          chauffage_ecs: 26000
+          chauffage:     16600
+        maison:
+          chauffage_ecs: 47800
+          chauffage:     37600
+    - name: "140% ≤ ηs < 170%"
+      min: 140
+      max: 170
+      amounts:
+        appartement:
+          chauffage_ecs: 42000
+          chauffage:     26900
+        maison:
+          chauffage_ecs: 77300
+          chauffage:     60800
+    - name: "170% ≤ ηs < 200%"
+      min: 170
+      max: 200
+      amounts:
+        appartement:
+          chauffage_ecs: 52700
+          chauffage:     33700
+        maison:
+          chauffage_ecs: 97100
+          chauffage:     76300
+    - name: "ηs ≥ 200%"
+      min: 200
+      max: null
+      amounts:
+        appartement:
+          chauffage_ecs: 57600
+          chauffage:     36800
+        maison:
+          chauffage_ecs: 106000
+          chauffage:     83300
+
+  # 2) Facteurs zone (géographiques)
+  zone_factors:
+    H1: 1.2
+    H2: 1.0
+    H3: 0.7
+
+  # 3) Facteurs surface (S, m²)
+  surface_bands:
+    appartement:
+      - { name: "S < 35",       min: null, max: 35,   factor: 0.5 }
+      - { name: "35 ≤ S < 60",  min: 35,  max: 60,   factor: 0.7 }
+      - { name: "60 ≤ S < 70",  min: 60,  max: 70,   factor: 1.0 }
+      - { name: "70 ≤ S < 90",  min: 70,  max: 90,   factor: 1.2 }
+      - { name: "90 ≤ S < 110", min: 90,  max: 110,  factor: 1.5 }
+      - { name: "110 ≤ S ≤ 130",min: 110, max: 131,  factor: 1.9 }  # ≤130 inclus
+      - { name: "S > 130",      min: 130, max: null, factor: 2.5 }
+    maison:
+      - { name: "S < 70",       min: null, max: 70,  factor: 0.5 }
+      - { name: "70 ≤ S < 90",  min: 70,  max: 90,   factor: 0.7 }
+      - { name: "90 ≤ S < 110", min: 90,  max: 110,  factor: 1.0 }
+      - { name: "110 ≤ S < 130",min: 110, max: 130,  factor: 1.1 }
+      - { name: "S ≥ 130",      min: 130, max: null, factor: 1.6 }
+
+  output:
+    name: kwh_cumac
+    round: 0
+
+# Bonification (additive) si remplacement chaudière individuelle charbon/fioul/gaz
+bonifications:
+  - name: "Coup de pouce — remplacement chaudière (charbon/fioul/gaz)"
+    applies: additive
+    enabled_by_default: false
+    kind: fixed_by_factor
+    factor_input: categorie_menage
+    inputs:
+      - name: categorie_menage
+        label: "Catégorie de ménage (Coup de pouce)"
+        type: select
+        options:
+          - { value: "modeste", label: "Ménage modeste" }
+          - { value: "autre",   label: "Autre ménage" }
+    rates:
+      modeste: 615400
+      autre:   384600
+    output:
+      name: kwh_cumac_bonus
+      round: 0
+
+eligibility_details: |
+  • Secteur : bâtiments résidentiels existants.
+  • Non éligibles au titre de cette fiche : PAC associées à un autre système de chauffage ; PAC utilisées uniquement pour l’ECS.
+  • Non cumulable avec BAR-TH-148 si la PAC installée assure à la fois le chauffage et l’ECS.
+  • Mise en œuvre par un professionnel qualifié (décret n°2014-812 — 5° ou 5°+6° selon l’usage).
+  • ηs (chauffage locaux, hors régulation) selon (UE) n°813/2013 :
+    - Application basse température : ηs ≥ 126 %
+    - Application moyenne/haute température : ηs ≥ 111 %
+  • Régulation : classe IV, V, VI, VII ou VIII (Communication 2014/C 207/02).
+  • Dimensionnement : note de calcul à T = Tbase (déperditions des pièces desservies), remise au bénéficiaire.
+  • Preuves : PAC air/eau ; application (basse / moyenne / haute T) ; usage (chauffage / chauffage+ECS) ;
+    ηs (UE 813/2013) ; régulateur (classe, marque, référence).
+  • Documents spécifiques : note de dimensionnement ; décision de qualification/certification du professionnel.
+  • Durée de vie conventionnelle : 17 ans.
+  • Barème : montant de base (selon ηs, usage, logement) × facteur surface (S) × facteur zone (H1=1,2 ; H2=1 ; H3=0,7).
+  • Validité : opérations engagées jusqu’au 30 juin 2028.
+  • Coup de pouce (additif, toutes zones) si remplacement d’une chaudière individuelle charbon/fioul/gaz :
+    - Ménage modeste : +615 400 kWh cumac
+    - Autre ménage  : +384 600 kWh cumac
+
+meta:
+  lifetime_years: 17
+  valid_from: null
+  valid_to: "2028-06-30"
+  references:
+    - "Fiche CEE BAR-TH-171 — Pompe à chaleur air/eau (applicable jusqu’au 30/06/2028)"
+    - "Règlement (UE) n°813/2013 — ηs chauffage locaux"
+    - "Communication 2014/C 207/02 — classes de régulateurs"
+    - "Décret n°2014-812 du 16 juillet 2014 — qualification"

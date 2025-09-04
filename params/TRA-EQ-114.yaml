@@ -1,0 +1,150 @@
+schema_version: "1.0"
+code: "TRA-EQ-114"
+title: "Achat/location de véhicule léger électrique neuf ou rétrofit (personne morale / collectivité)"
+description: "Montant en kWh cumac par véhicule selon catégorie (M1 / N1-N2), statut du demandeur et année ; option de bonification ×4 pour les utilitaires neufs."
+
+units:
+  base_input: "véhicule(s)"
+  rate: "kWhcumac/veh"
+  output: "kWhcumac"
+
+# -----------------------
+# Saisie utilisateur
+# -----------------------
+inputs:
+  - name: type_demandeur
+    label: "Type de demandeur / parc"
+    type: select
+    options:
+      - { value: "autre", label: "Autres personnes morales / collectivités (parc ≤ 100 véhicules*, collectivité ≤ 20**)" }
+      - { value: "pm_100plus", label: "Personne morale avec parc > 100 véhicules* (ou filiale d’un groupe >100)" }
+      - { value: "coll_20plus_ou_loueur_vendeur", label: "Collectivité > 20 véhicules** ou loueur / vendeur" }
+
+  - name: annee_tranche
+    label: "Année d’engagement (pour 'parc >100')"
+    type: select
+    options:
+      - { value: "2025-2026", label: "2025–2026" }
+      - { value: "2027plus", label: "À compter de 2027" }
+
+  - name: categorie
+    label: "Catégorie du véhicule"
+    type: select
+    options:
+      - { value: "M1_neuf", label: "Véhicule léger neuf M1" }
+      - { value: "N1N2_neuf", label: "VUL neuf N1 ou N2 (dérog. poids)" }
+      - { value: "M1_retrofit", label: "Véhicule léger M1 rétrofité" }
+      - { value: "N1N2_retrofit", label: "VUL N1/N2 rétrofité (dérog. poids)" }
+
+  - name: nb_vehicules
+    label: "Nombre de véhicules (N)"
+    type: number
+    min: 1
+    step: 1
+    default: 1
+
+# -----------------------
+# Calcul standard (montant par véhicule × N)
+# Variantes selon le type de demandeur & année
+# -----------------------
+calcul_standard:
+  variants:
+    # (A) Personne morale >100 véhicules — 2025-2026
+    - when:
+        type_demandeur: "pm_100plus"
+        annee_tranche: "2025-2026"
+      block:
+        kind: multiplication
+        base_input: nb_vehicules
+        factor_input: categorie
+        rates:
+          M1_neuf: 59400
+          N1N2_neuf: 125400
+          M1_retrofit: 47800
+          N1N2_retrofit: 101100
+        output: { name: kwh_cumac, round: 0 }
+
+    # (B) Personne morale >100 véhicules — à compter de 2027
+    - when:
+        type_demandeur: "pm_100plus"
+        annee_tranche: "2027plus"
+      block:
+        kind: multiplication
+        base_input: nb_vehicules
+        factor_input: categorie
+        rates:
+          M1_neuf: 44500
+          N1N2_neuf: 94100
+          M1_retrofit: 35900
+          N1N2_retrofit: 75800
+        output: { name: kwh_cumac, round: 0 }
+
+    # (C) Collectivité >20 véhicules OU loueur / vendeur
+    - when:
+        type_demandeur: "coll_20plus_ou_loueur_vendeur"
+      block:
+        kind: multiplication
+        base_input: nb_vehicules
+        factor_input: categorie
+        rates:
+          M1_neuf: 44500
+          N1N2_neuf: 94100
+          M1_retrofit: 35900
+          N1N2_retrofit: 75800
+        output: { name: kwh_cumac, round: 0 }
+
+    # (D) Cas général (autres personnes morales / collectivités ≤ seuils)
+    - when:
+        type_demandeur: "autre"
+      block:
+        kind: multiplication
+        base_input: nb_vehicules
+        factor_input: categorie
+        rates:
+          M1_neuf: 74200
+          N1N2_neuf: 156800
+          M1_retrofit: 59800
+          N1N2_retrofit: 126300
+        output: { name: kwh_cumac, round: 0 }
+
+# -----------------------
+# Bonification optionnelle (article III)
+# ×4 si catégorie = VUL NEUF (N1/N2)
+# -----------------------
+bonifications:
+  - name: "Bonification ×4 — Utilitaires neufs (N1/N2)"
+    applies: scale
+    enabled_by_default: false
+    kind: scale
+    inputs:
+      - { name: categorie, label: "Catégorie (utilisée pour la bonification)" }
+    scale_table:
+      M1_neuf: 1
+      N1N2_neuf: 4
+      M1_retrofit: 1
+      N1N2_retrofit: 1
+    output: { name: multiplicateur, round: 0 }
+
+eligibility_details: |
+  • Bénéficiaires : collectivités territoriales (et leurs groupements/établissements publics) ou autres personnes morales.
+  • Véhicules éligibles : catégories M1 (véhicule léger), N1 et N2 (avec dérogation de poids art. R.312-4), électriques neufs OU issus d’un rétrofit 100% électrique.
+  • Location : durée minimale 24 mois (hors reconduction tacite).
+  • Véhicule de démonstration : éligible si acquisition/location 3 à 12 mois après 1re immatriculation.
+  • Revente interdite hors territoire national (PF ou PM) pendant la durée de vie conv. de la fiche.
+  • Preuves/doc justificatifs : certificat d’immatriculation (provisoire/définitif) ; attestation de transformation & CI antérieur pour rétrofit ; 1er CI + récépissé de fin de démo pour ex-démonstration ; feuille récapitulative (min. énergie).
+  • Durée de vie conventionnelle : 16 ans (neuf), 12 ans (rétrofit).
+  • Barèmes :
+    – Cas général (autres PM/collectivités ≤ seuils) : M1 neuf 74 200 ; N1/N2 neuf 156 800 ; M1 rétrofit 59 800 ; N1/N2 rétrofit 126 300 kWhc/veh.
+    – PM >100 (ou filiale de groupe >100) : 2025–2026 → 59 400 / 125 400 / 47 800 / 101 100 ; à partir de 2027 → 44 500 / 94 100 / 35 900 / 75 800 kWhc/veh.
+    – Collectivité >20 ou loueur/vendeur : 44 500 / 94 100 / 35 900 / 75 800 kWhc/veh.
+  • Bonification (article III) : ×4 si la catégorie est « véhicules utilitaires légers neufs » (N1/N2 neufs). Active la case « Bonification ×4 » si applicable.
+
+meta:
+  lifetime_years:
+    neuf: 16
+    retrofit: 12
+  valid_from: null
+  valid_to: "2030-01-01"
+  references:
+    - "Fiche CEE TRA-EQ-114 — Véhicules électriques neufs / rétrofit (opérations jusqu’au 01/01/2030)"
+    - "Bonification : article III — multiplicateur ×4 pour VUL neufs (N1/N2)"
