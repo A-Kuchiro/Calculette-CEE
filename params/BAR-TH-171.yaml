@@ -63,41 +63,41 @@ calcul_standard:
       max: 140
       amounts:
         appartement:
-          chauffage_ecs: 26000
-          chauffage:     16600
+          chauffage_ecs: 54000
+          chauffage:     38400
         maison:
-          chauffage_ecs: 47800
-          chauffage:     37600
+          chauffage_ecs: 96700
+          chauffage:     79500
     - name: "140% ≤ ηs < 170%"
       min: 140
       max: 170
       amounts:
         appartement:
-          chauffage_ecs: 42000
-          chauffage:     26900
+          chauffage_ecs: 62300
+          chauffage:     44300
         maison:
-          chauffage_ecs: 77300
-          chauffage:     60800
+          chauffage_ecs: 111500
+          chauffage:     91600
     - name: "170% ≤ ηs < 200%"
       min: 170
       max: 200
       amounts:
         appartement:
-          chauffage_ecs: 52700
-          chauffage:     33700
+          chauffage_ecs: 67800
+          chauffage:     48200
         maison:
-          chauffage_ecs: 97100
-          chauffage:     76300
+          chauffage_ecs: 121400
+          chauffage:     99700
     - name: "ηs ≥ 200%"
       min: 200
       max: null
       amounts:
         appartement:
-          chauffage_ecs: 57600
-          chauffage:     36800
+          chauffage_ecs: 70300
+          chauffage:     50000
         maison:
-          chauffage_ecs: 106000
-          chauffage:     83300
+          chauffage_ecs: 125800
+          chauffage:     103400
 
   # 2) Facteurs zone (géographiques)
   zone_factors:
@@ -105,74 +105,82 @@ calcul_standard:
     H2: 1.0
     H3: 0.7
 
+ 
   # 3) Facteurs surface (S, m²)
   surface_bands:
     appartement:
-      - { name: "S < 35",       min: null, max: 35,   factor: 0.5 }
-      - { name: "35 ≤ S < 60",  min: 35,  max: 60,   factor: 0.7 }
-      - { name: "60 ≤ S < 70",  min: 60,  max: 70,   factor: 1.0 }
-      - { name: "70 ≤ S < 90",  min: 70,  max: 90,   factor: 1.2 }
-      - { name: "90 ≤ S < 110", min: 90,  max: 110,  factor: 1.5 }
-      - { name: "110 ≤ S ≤ 130",min: 110, max: 131,  factor: 1.9 }  # ≤130 inclus
-      - { name: "S > 130",      min: 130, max: null, factor: 2.5 }
+      - { name: "S < 35",        min: null, max: 35,   factor: 0.5 }
+      - { name: "35 ≤ S < 60",   min: 35,   max: 60,   factor: 0.7 }
+      - { name: "60 ≤ S < 70",   min: 60,   max: 70,   factor: 1.0 }
+      - { name: "70 ≤ S < 90",   min: 70,   max: 90,   factor: 1.2 }
+      - { name: "90 ≤ S < 110",  min: 90,   max: 110,  factor: 1.5 }
+      - { name: "110 ≤ S ≤ 130", min: 110,  max: 131,  factor: 1.9 }  # ≤130 inclus
+      - { name: "S > 130",       min: 131,  max: null, factor: 2.5 }  # démarre à 131
+
     maison:
-      - { name: "S < 70",       min: null, max: 70,  factor: 0.5 }
-      - { name: "70 ≤ S < 90",  min: 70,  max: 90,   factor: 0.7 }
-      - { name: "90 ≤ S < 110", min: 90,  max: 110,  factor: 1.0 }
-      - { name: "110 ≤ S < 130",min: 110, max: 130,  factor: 1.1 }
-      - { name: "S ≥ 130",      min: 130, max: null, factor: 1.6 }
+      - { name: "S < 70",        min: null, max: 70,   factor: 0.5 }
+      - { name: "70 ≤ S < 90",   min: 70,   max: 90,   factor: 0.7 }
+      - { name: "90 ≤ S < 110",  min: 90,   max: 110,  factor: 1.0 }
+      - { name: "110 ≤ S < 130", min: 110,  max: 130,  factor: 1.1 }
+      - { name: "S ≥ 130",       min: 130,  max: null, factor: 1.6 }
+
 
   output:
     name: kwh_cumac
     round: 0
 
-# Bonification (additive) si remplacement chaudière individuelle charbon/fioul/gaz
+# Bonification (multiplicative) si RP + remplacement chaudière individuelle (charbon/fioul/gaz)
 bonifications:
-  - name: "Coup de pouce — remplacement chaudière (charbon/fioul/gaz)"
-    applies: additive
+  - name: "Bonification ×5 — remplacement chaudière individuelle en résidence principale"
+    applies: scale                  # <-- déjà supporté par l'app
     enabled_by_default: false
-    kind: fixed_by_factor
-    factor_input: categorie_menage
+    kind: scale                     # <-- déjà supporté par compute_block (case 'scale')
     inputs:
-      - name: categorie_menage
-        label: "Catégorie de ménage (Coup de pouce)"
-        type: select
-        options:
-          - { value: "modeste", label: "Ménage modeste" }
-          - { value: "autre",   label: "Autre ménage" }
-    rates:
-      modeste: 615400
-      autre:   384600
+      - { name: residence_principale, label: "Logement occupé en résidence principale", type: boolean, default: false }
+      - { name: energie_chaudiere,    label: "Énergie de la chaudière déposée",        type: select,
+          options: [ {value: "charbon", label: "Charbon"}, {value: "fioul", label: "Fioul"}, {value: "gaz", label: "Gaz"} ] }
+    # Table de multiplicateur (2D) : si (RP == True) ET (énergie ∈ {charbon, fioul, gaz}) => 5, sinon 1
+    scale_table:
+      "True":
+        charbon: 5
+        fioul:   5
+        gaz:     5
+      "False":
+        charbon: 1
+        fioul:   1
+        gaz:     1
     output:
-      name: kwh_cumac_bonus
+      name: multiplicateur_bonus
       round: 0
 
 eligibility_details: |
   • Secteur : bâtiments résidentiels existants.
   • Non éligibles au titre de cette fiche : PAC associées à un autre système de chauffage ; PAC utilisées uniquement pour l’ECS.
   • Non cumulable avec BAR-TH-148 si la PAC installée assure à la fois le chauffage et l’ECS.
+  • Non cumulable avec BAR-TH-143 (système solaire combiné).
   • Mise en œuvre par un professionnel qualifié (décret n°2014-812 — 5° ou 5°+6° selon l’usage).
-  • ηs (chauffage locaux, hors régulation) selon (UE) n°813/2013 :
+  • ηs (chauffage des locaux, hors régulation) selon (UE) n°813/2013 :
     - Application basse température : ηs ≥ 126 %
     - Application moyenne/haute température : ηs ≥ 111 %
   • Régulation : classe IV, V, VI, VII ou VIII (Communication 2014/C 207/02).
   • Dimensionnement : note de calcul à T = Tbase (déperditions des pièces desservies), remise au bénéficiaire.
   • Preuves : PAC air/eau ; application (basse / moyenne / haute T) ; usage (chauffage / chauffage+ECS) ;
-    ηs (UE 813/2013) ; régulateur (classe, marque, référence).
+    ηs (UE 813/2013) ; régulateur (classe). À défaut : doc fabricant / organisme accrédité (ISO/IEC 17065 – EA/COFRAC).
   • Documents spécifiques : note de dimensionnement ; décision de qualification/certification du professionnel.
   • Durée de vie conventionnelle : 17 ans.
   • Barème : montant de base (selon ηs, usage, logement) × facteur surface (S) × facteur zone (H1=1,2 ; H2=1 ; H3=0,7).
-  • Validité : opérations engagées jusqu’au 30 juin 2028.
-  • Coup de pouce (additif, toutes zones) si remplacement d’une chaudière individuelle charbon/fioul/gaz :
-    - Ménage modeste : +615 400 kWh cumac
-    - Autre ménage  : +384 600 kWh cumac
+  • Validité : opérations engagées du 01/10/2025 au 31/12/2030.
+  • Bonification multiplicative ×5 (toutes zones) si ET SEULEMENT SI :
+    - logement occupé à titre de résidence principale ET
+    - remplacement d’une chaudière individuelle au charbon, au fioul ou au gaz.
 
 meta:
   lifetime_years: 17
-  valid_from: null
-  valid_to: "2028-06-30"
+  valid_from: "2025-10-01"
+  valid_to: "2030-12-31"
   references:
-    - "Fiche CEE BAR-TH-171 — Pompe à chaleur air/eau (applicable jusqu’au 30/06/2028)"
+    - "Fiche CEE BAR-TH-171 — Pompe à chaleur air/eau (01/10/2025 → 31/12/2030)"
     - "Règlement (UE) n°813/2013 — ηs chauffage locaux"
     - "Communication 2014/C 207/02 — classes de régulateurs"
     - "Décret n°2014-812 du 16 juillet 2014 — qualification"
+    - "Bonification ×5 — remplacement chaudière individuelle RP (BAR-TH-171)"

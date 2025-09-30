@@ -37,7 +37,6 @@ def render_input(field):
         step_v = field.get("step", None)
 
         # Détermination du type cible (int vs float) pour numéroter de façon homogène
-        # Règle: si l’un des paramètres est float -> tout en float, sinon tout en int
         nums = [v for v in (min_v, max_v, val_v, step_v) if v is not None]
         use_float = any(isinstance(v, float) for v in nums)
 
@@ -71,9 +70,15 @@ def render_input(field):
             st.stop()
         vlabel = st.selectbox(label, labels, index=0, key=f"inp_{name}")
         return name, values[labels.index(vlabel)]
+
+    elif t == "boolean":
+        v = st.checkbox(label, value=bool(field.get("default", False)), key=f"inp_{name}")
+        return name, v
+
     else:
         st.error(f"Type de champ non géré: {t}")
         st.stop()
+
 
 def _guess_number(values, key):
     if key is None:
@@ -295,7 +300,7 @@ def compute_block(block, values):
                 r_desc = f"× R[{r_inputs[0]}={k1}]={r_factor}"
             elif len(r_inputs) == 2:
                 k1 = str(values.get(r_inputs[0]))
-                k2 = str(values.get(r_inputs[1]))  # <-- fix ici: r_inputs (et non rinputs)
+                k2 = str(values.get(r_inputs[1]))
                 if k1 not in r_table or k2 not in r_table[k1]:
                     st.error(f"Coefficient R indisponible pour {r_inputs[0]}={k1}, {r_inputs[1]}={k2}.")
                     st.stop()
@@ -346,12 +351,12 @@ def compute_block(block, values):
             st.stop()
 
         # Bande ηs -> montant de base
-        eta_bands = block.get("eta_bands", [])
+        eta_bands = block.get("eta_bands") or []  # robustesse
         chosen_eta = _choose_band(eta_bands, eta)
         if not chosen_eta:
             st.error(f"Aucune bande ηs trouvée pour {eta_key}={eta}.")
             st.stop()
-        amounts = chosen_eta.get("amounts", {})
+        amounts = (chosen_eta.get("amounts") or {})
         try:
             base_amount = D(amounts[logement][usage])
         except Exception:
@@ -359,15 +364,15 @@ def compute_block(block, values):
             st.stop()
 
         # Facteur zone
-        zf_raw = block.get("zone_factors", {}).get(zone, None)
+        zf_raw = (block.get("zone_factors") or {}).get(zone)
         if zf_raw is None:
             st.error(f"Facteur de zone indisponible pour zone={zone}.")
             st.stop()
         zf = D(zf_raw)
 
         # Facteur surface (selon type de logement)
-        surf_bands_all = block.get("surface_bands", {})
-        bands = surf_bands_all.get(logement, [])
+        surf_bands_all = block.get("surface_bands") or {}   # robustesse
+        bands = surf_bands_all.get(logement) or []          # robustesse
         chosen_s = _choose_band(bands, S)
         if not chosen_s:
             st.error(f"Aucune bande de surface trouvée pour S={S} (logement={logement}).")
@@ -561,7 +566,11 @@ def main():
 
     with st.expander("Détail de calcul (récap)"):
         for label, v in total_breakdown:
-            st.write(f"- {label} : {v:,} kWhc".replace(",", " "))
+            if isinstance(v, (int, float, Decimal)):
+                st.write(f"- {label} : {v:,} kWhc".replace(",", " "))
+            else:
+                # ex: "× 5" pour un bonus multiplicatif
+                st.write(f"- {label} : {v}")
         st.write(
             f"Total : {total:,} kWhc = {total_mwh:,.3f} MWhc × {ppk_mwh} €/MWhc = {montant_eur:,.2f} €"
             .replace(",", " ")
