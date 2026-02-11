@@ -341,13 +341,16 @@ def compute_block(block, values):
         surf_key = block.get("surface_input")
 
         eta = _guess_number(values, eta_key)
-        usage = str(values.get(usage_key))
+        usage = str(values.get(usage_key)) if usage_key else None
         logement = str(values.get(log_key))
         zone = str(values.get(zone_key))
         S = _guess_number(values, surf_key)
 
-        if None in (eta, usage, logement, zone, S):
-            st.error("Paramètres manquants pour le calcul (ηs, usage, logement, zone, surface).")
+        if None in (eta, logement, zone, S):
+            st.error("Paramètres manquants pour le calcul (ηs, logement, zone, surface).")
+            st.stop()
+        if usage_key and usage is None:
+            st.error("Paramètre manquant pour le calcul (usage).")
             st.stop()
 
         # Bande ηs -> montant de base
@@ -358,9 +361,19 @@ def compute_block(block, values):
             st.stop()
         amounts = (chosen_eta.get("amounts") or {})
         try:
-            base_amount = D(amounts[logement][usage])
+            if usage_key:
+                base_amount = D(amounts[logement][usage])
+            else:
+                log_amount = amounts.get(logement)
+                if isinstance(log_amount, dict):
+                    if "default" in log_amount:
+                        base_amount = D(log_amount["default"])
+                    else:
+                        raise KeyError("usage_required")
+                else:
+                    base_amount = D(log_amount)
         except Exception:
-            st.error("Montant de base introuvable pour la combinaison (ηs/usage/logement).")
+            st.error("Montant de base introuvable pour la combinaison (ηs/logement).")
             st.stop()
 
         # Facteur zone

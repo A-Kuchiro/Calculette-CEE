@@ -16,13 +16,6 @@ inputs:
       - { value: "appartement", label: "Appartement" }
       - { value: "maison",      label: "Maison individuelle" }
 
-  - name: usage
-    label: "Usage de la PAC"
-    type: select
-    options:
-      - { value: "chauffage",       label: "Chauffage" }
-      - { value: "chauffage_ecs",   label: "Chauffage + ECS" }
-
   - name: zone_climatique
     label: "Zone climatique"
     type: select
@@ -51,53 +44,24 @@ inputs:
 calcul_standard:
   kind: eta_zone_surface_composite
   eta_input: etas
-  usage_input: usage
   logement_input: type_logement
   zone_input: zone_climatique
   surface_input: surface_chauffee
 
-  # 1) Montants de base (kWhc) par bande d’ηs, selon le type de logement et l’usage
+  # 1) Montants de base (kWhc) par bande d’ηs, selon le type de logement
   eta_bands:
     - name: "111% ≤ ηs < 140%"
       min: 111
       max: 140
       amounts:
-        appartement:
-          chauffage_ecs: 54000
-          chauffage:     38400
-        maison:
-          chauffage_ecs: 96700
-          chauffage:     79500
-    - name: "140% ≤ ηs < 170%"
+        appartement: 48700
+        maison: 90900
+    - name: "ηs ≥ 140%"
       min: 140
-      max: 170
-      amounts:
-        appartement:
-          chauffage_ecs: 62300
-          chauffage:     44300
-        maison:
-          chauffage_ecs: 111500
-          chauffage:     91600
-    - name: "170% ≤ ηs < 200%"
-      min: 170
-      max: 200
-      amounts:
-        appartement:
-          chauffage_ecs: 67800
-          chauffage:     48200
-        maison:
-          chauffage_ecs: 121400
-          chauffage:     99700
-    - name: "ηs ≥ 200%"
-      min: 200
       max: null
       amounts:
-        appartement:
-          chauffage_ecs: 70300
-          chauffage:     50000
-        maison:
-          chauffage_ecs: 125800
-          chauffage:     103400
+        appartement: 58900
+        maison: 109200
 
   # 2) Facteurs zone (géographiques)
   zone_factors:
@@ -109,20 +73,14 @@ calcul_standard:
   # 3) Facteurs surface (S, m²)
   surface_bands:
     appartement:
-      - { name: "S < 35",        min: null, max: 35,   factor: 0.5 }
-      - { name: "35 ≤ S < 60",   min: 35,   max: 60,   factor: 0.7 }
-      - { name: "60 ≤ S < 70",   min: 60,   max: 70,   factor: 1.0 }
-      - { name: "70 ≤ S < 90",   min: 70,   max: 90,   factor: 1.2 }
-      - { name: "90 ≤ S < 110",  min: 90,   max: 110,  factor: 1.5 }
-      - { name: "110 ≤ S ≤ 130", min: 110,  max: 131,  factor: 1.9 }  # ≤130 inclus
-      - { name: "S > 130",       min: 131,  max: null, factor: 2.5 }  # démarre à 131
+      - { name: "S < 35",      min: null, max: 35,   factor: 0.5 }
+      - { name: "35 ≤ S < 60", min: 35,   max: 60,   factor: 0.7 }
+      - { name: "S ≥ 60",      min: 60,   max: null, factor: 1.0 }
 
     maison:
-      - { name: "S < 70",        min: null, max: 70,   factor: 0.5 }
-      - { name: "70 ≤ S < 90",   min: 70,   max: 90,   factor: 0.7 }
-      - { name: "90 ≤ S < 110",  min: 90,   max: 110,  factor: 1.0 }
-      - { name: "110 ≤ S < 130", min: 110,  max: 130,  factor: 1.1 }
-      - { name: "S ≥ 130",       min: 130,  max: null, factor: 1.6 }
+      - { name: "S < 70",      min: null, max: 70,   factor: 0.5 }
+      - { name: "70 ≤ S < 90", min: 70,   max: 90,   factor: 0.7 }
+      - { name: "S ≥ 90",      min: 90,   max: null, factor: 1.0 }
 
 
   output:
@@ -155,31 +113,40 @@ bonifications:
 
 eligibility_details: |
   • Secteur : bâtiments résidentiels existants.
-  • Non éligibles au titre de cette fiche : PAC associées à un autre système de chauffage ; PAC utilisées uniquement pour l’ECS.
-  • Non cumulable avec BAR-TH-148 si la PAC installée assure à la fois le chauffage et l’ECS.
-  • Non cumulable avec BAR-TH-143 (système solaire combiné).
-  • Mise en œuvre par un professionnel qualifié (décret n°2014-812 — 5° ou 5°+6° selon l’usage).
+  • Dénomination : mise en place d’une PAC air/eau pour le chauffage ou le chauffage + ECS. La PAC est installée et mise en service ;
+    si l’installation a lieu durant la période de chauffe, elle est conservée en fonctionnement durant le reste de la période de chauffe.
+  • Non éligibles : PAC associées à un autre système de chauffage ; PAC utilisées uniquement pour l’ECS.
+  • Non cumulable avec : BAR-TH-101, BAR-TH-124, BAR-TH-143, BAR-TH-148, BAR-TH-168.
+  • Mise en œuvre par un professionnel disposant d’un signe de qualité (décret n°2014-812, 5° ou 5°+6° selon l’usage).
   • ηs (chauffage des locaux, hors régulation) selon (UE) n°813/2013 :
     - Application basse température : ηs ≥ 126 %
     - Application moyenne/haute température : ηs ≥ 111 %
+  • L’ηs prise en compte est celle de la PAC seule (hors régulation).
+  • Systèmes déportés ECS : même marque que la PAC ; seule la PAC consomme l’énergie pour l’ECS.
+    Dérogation : résistance électrique de secours/anti-légionelle admise si la régulation priorise la PAC.
+  • Choix de l’ηs selon émetteurs :
+    - Plancher/plafond/mur chauffant ou ventilo-convecteurs à eau : PAC basse température, ηs à 35°C.
+    - Autres émetteurs (y compris mixtes et radiateurs « basse température » 45°C) : PAC moyenne/haute température, ηs à 55°C.
+    - Chauffage + ECS et/ou systèmes déportés ECS : PAC moyenne/haute température, ηs à 55°C.
   • Régulation : classe IV, V, VI, VII ou VIII (Communication 2014/C 207/02).
-  • Dimensionnement : note de calcul à T = Tbase (déperditions des pièces desservies), remise au bénéficiaire.
-  • Preuves : PAC air/eau ; application (basse / moyenne / haute T) ; usage (chauffage / chauffage+ECS) ;
-    ηs (UE 813/2013) ; régulateur (classe). À défaut : doc fabricant / organisme accrédité (ISO/IEC 17065 – EA/COFRAC).
-  • Documents spécifiques : note de dimensionnement ; décision de qualification/certification du professionnel.
+  • Dimensionnement : note de dimensionnement à T = Tbase, remise au bénéficiaire (actualisée si nécessaire).
+  • Preuves : marque/référence PAC ; type d’application ; usage ; ηs ; classe de régulation ;
+    et, le cas échéant, marque/référence du système déporté ECS.
+    À défaut : document fabricant/organisme accrédité (NF EN ISO/IEC 17065 – EA/COFRAC) précisant les mêmes éléments.
+  • Documents spécifiques : note de dimensionnement ; décision de qualification/certification ; fiche d’information produit PAC (UE 2017/1369).
   • Durée de vie conventionnelle : 17 ans.
-  • Barème : montant de base (selon ηs, usage, logement) × facteur surface (S) × facteur zone (H1=1,2 ; H2=1 ; H3=0,7).
-  • Validité : opérations engagées du 01/10/2025 au 31/12/2030.
+  • Barème : montant de base (selon ηs, logement) × facteur surface (S) × facteur zone (H1=1,2 ; H2=1 ; H3=0,7).
+  • Validité : opérations engagées jusqu’au 31/12/2030.
   • Bonification multiplicative ×5 (toutes zones) si ET SEULEMENT SI :
     - logement occupé à titre de résidence principale ET
     - remplacement d’une chaudière individuelle au charbon, au fioul ou au gaz.
 
 meta:
   lifetime_years: 17
-  valid_from: "2025-10-01"
+  valid_from: "2026-01-01"
   valid_to: "2030-12-31"
   references:
-    - "Fiche CEE BAR-TH-171 — Pompe à chaleur air/eau (01/10/2025 → 31/12/2030)"
+    - "Fiche CEE BAR-TH-171 vA78.4 — Pompe à chaleur air/eau (01/01/2026 → 31/12/2030)"
     - "Règlement (UE) n°813/2013 — ηs chauffage locaux"
     - "Communication 2014/C 207/02 — classes de régulateurs"
     - "Décret n°2014-812 du 16 juillet 2014 — qualification"
