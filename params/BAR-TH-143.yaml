@@ -16,6 +16,26 @@ inputs:
       - { value: "H1", label: "H1" }
       - { value: "H2", label: "H2" }
       - { value: "H3", label: "H3" }
+  
+  - name: coup_de_pouce
+    label: "Signataire charte « Coup de pouce Chauffage »"
+    type: boolean
+    default: false
+  
+  - name: remplacement_chaudiere
+    label: "Remplacement d'une chaudière au charbon, fioul ou gaz"
+    type: boolean
+    default: false
+  
+  - name: residence_principale
+    label: "Logement en résidence principale"
+    type: boolean
+    default: false
+  
+  - name: signataire_charte_v6
+    label: "Signataire charte « Coup de pouce Chauffage » (annexe V-6)"
+    type: boolean
+    default: false
 
 # Forfait par équipement selon la zone
 calcul_standard:
@@ -29,41 +49,81 @@ calcul_standard:
     name: kwh_cumac
     round: 0
 
-# Bonification : porte le volume total à 769 200 kWhc (toutes zones) si remplacement d'une chaudière individuelle charbon/fioul/gaz
+# Bonification Coup de Pouce : multiplication × 2 si conditions réunies
 bonifications:
-  - name: "Bonification — remplacement chaudière (charbon/fioul/gaz)"
-    applies: replacement
+  - name: "Bonification Coup de Pouce Chauffage"
     enabled_by_default: false
-    kind: multiplication
-    rate: 769200
+    kind: conditional_multiplication
+    rate: 2
+    conditions:
+      - field: coup_de_pouce
+        operator: "=="
+        value: true
+      - field: remplacement_chaudiere
+        operator: "=="
+        value: true
+      - field: residence_principale
+        operator: "=="
+        value: true
+      - field: signataire_charte_v6
+        operator: "=="
+        value: true
     output:
-      name: kwh_cumac_total_bonifie
+      name: kwh_cumac_bonifie
       round: 0
 
 eligibility_details: |
-  • Secteur : maisons individuelles existantes (France métropolitaine).
-  • Système : SSC (chauffage + ECS), couplé à des émetteurs basse température.
-  • Capteurs :
-    - productivité ≥ 600 W/m² de surface d’entrée (η0 × G avec G = 1 000 W/m², ΔT = 0),
-    - surface hors-tout installée ≥ 8 m²,
-    - certification CSTBat ou SolarKeymark, ou performances/qualité équivalentes établies par organisme accrédité
-      (EN 12975-1, NF EN ISO 9806, NF EN ISO/IEC 17025, NF EN 45011).
-  • Ballons : capacité de stockage solaire strictement > 400 L (un ou plusieurs ballons).
-  • Pose par professionnel qualifié (décret n°2014-812 — travaux relevant du 2°).
-  • Preuves : mise en place d’un SSC + productivité des capteurs (W/m²). À défaut : marque/référence + doc fabricant
-    confirmant SSC et productivité des capteurs.
-  • Documents spécifiques : certification capteurs (CSTBat/SolarKeymark ou équivalent) ; décision de qualification/certification du professionnel.
-  • Durée de vie conventionnelle : 20 ans.
-  • Validité : fiche abrogée à compter du 1er janvier 2028.
-  • Barème cumac (par équipement) : H1 = 134 800 ; H2 = 121 000 ; H3 = 100 500.
-  • Bonification (toutes zones) si remplacement d’une chaudière individuelle au charbon/fioul/gaz :
-    → volume total porté à **769 200 kWh cumac**.
+  PÉRIMÈTRE D'APPLICATION
+  • Bâtiments : maisons individuelles existantes (> 2 ans à la date d'engagement)
+  • Territoire : France métropolitaine uniquement
+  • Validité : opérations engagées jusqu'au 31/12/2030
+  • Non cumulable avec : BAR-TH-171, BAR-TH-172, BAR-TH-113
+
+  CONDITIONS D'ÉLIGIBILITÉ (toutes obligatoires)
+  • Productivité capteurs : ≥ 600 W/m² (rendement optique × 1000 W/m², ΔT = 0)
+  • Surface hors tout capteurs : ≥ 8 m²
+  • Capacité stockage ballon(s) : > 400 litres (strictement)
+  • Certification capteurs : CSTBat ou Solar Keymark ou équivalent
+  • Capteurs hybrides (électricité + chaleur) : exclus
+  • Émetteurs chauffage : basse température uniquement (DTnom ≤ 40 K, norme EN 442)
+  • Installateur : titulaire signe de qualité (décret n°2014-812, art.2, 2°)
+
+  MONTANTS FORFAITAIRES (cas standard)
+  • H1 : 134 800 kWh cumac
+  • H2 : 121 000 kWh cumac
+  • H3 : 100 500 kWh cumac
+
+  BONIFICATION COUP DE POUCE CHAUFFAGE (Article 3-6, IV-2°)
+  Coefficient multiplicateur : × 2
+  Conditions cumulatives (toutes obligatoires) :
+  • Signataire charte « Coup de pouce Chauffage » (annexe V-6)
+  • Remplacement d'une chaudière au charbon, fioul ou gaz
+  • Logement en résidence principale
+  • Opération engagée à compter du 01/01/2026
+  
+  Montants avec bonification :
+  • H1 : 134 800 × 2 = 269 600 kWh cumac
+  • H2 : 121 000 × 2 = 242 000 kWh cumac
+  • H3 : 100 500 × 2 = 201 000 kWh cumac
+
+  DOCUMENTS REQUIS
+  • Certification capteurs (CSTBat/SolarKeymark ou équivalent)
+  • Décision de qualification/certification du professionnel
+  • Preuve de mise en place SSC + productivité capteurs (W/m²)
+
+  DURÉE DE VIE CONVENTIONNELLE : 20 ans
 
 meta:
   lifetime_years: 20
-  valid_from: null
-  valid_to: "2028-01-01"
+  valid_from: "2026-01-01"
+  valid_to: "2031-01-01"
+  non_cumulable_with:
+    - BAR-TH-171
+    - BAR-TH-172
+    - BAR-TH-113
   references:
-    - "Fiche CEE BAR-TH-143 — Système solaire combiné (abrogation 01/01/2028)"
+    - "Fiche CEE BAR-TH-143 — Système solaire combiné (mise à jour 01/01/2026)"
     - "EN 12975-1 ; NF EN ISO 9806 ; NF EN ISO/IEC 17025 ; NF EN 45011"
-    - "Décret n°2014-812 du 16 juillet 2014 — qualification"
+    - "EN 442 — Émetteurs basse température"
+    - "Décret n°2014-812 du 16 juillet 2014 — qualification de l'installateur"
+    - "Article 3-6, IV-2° du dispositif CEE — Bonification Coup de Pouce Chauffage"

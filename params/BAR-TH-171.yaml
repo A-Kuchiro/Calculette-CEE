@@ -32,10 +32,18 @@ inputs:
     step: 1
     default: 90
 
+  - name: type_application
+    label: "Type d'application (détermine ηs min)"
+    type: select
+    options:
+      - { value: "basse_temperature", label: "Basse température (plancher/plafond/ventilo-convecteur)" }
+      - { value: "moyenne_haute_temperature", label: "Moyenne/Haute température (radiateurs 45°C, chauffage+ECS)" }
+    default: "moyenne_haute_temperature"
+
   - name: etas
     label: "Efficacité énergétique saisonnière ηs (%)"
     type: number
-    min: 100
+    min: 111
     max: 400
     step: 0.1
     default: 150
@@ -87,41 +95,39 @@ calcul_standard:
     name: kwh_cumac
     round: 0
 
-# Bonification (multiplicative) si RP + remplacement chaudière individuelle (charbon/fioul/gaz)
+# Bonification multiplicative ×5 : si RP + remplacement chaudière (charbon/fioul/gaz)
 bonifications:
-  - name: "Bonification ×5 — remplacement chaudière individuelle en résidence principale"
-    applies: scale                  # <-- déjà supporté par l'app
+  - name: "Bonification ×5 — remplacement chaudière en résidence principale"
     enabled_by_default: false
-    kind: scale                     # <-- déjà supporté par compute_block (case 'scale')
+    kind: conditional_multiplication
+    rate: 5
     inputs:
       - { name: residence_principale, label: "Logement occupé en résidence principale", type: boolean, default: false }
-      - { name: energie_chaudiere,    label: "Énergie de la chaudière déposée",        type: select,
-          options: [ {value: "charbon", label: "Charbon"}, {value: "fioul", label: "Fioul"}, {value: "gaz", label: "Gaz"} ] }
-    # Table de multiplicateur (2D) : si (RP == True) ET (énergie ∈ {charbon, fioul, gaz}) => 5, sinon 1
-    scale_table:
-      "True":
-        charbon: 5
-        fioul:   5
-        gaz:     5
-      "False":
-        charbon: 1
-        fioul:   1
-        gaz:     1
+      - { name: energie_chaudiere, label: "Chaudière déposée : charbon/fioul/gaz", type: select,
+          options: [ {value: "aucune", label: "Aucune / Électrique"}, {value: "charbon", label: "Charbon"}, {value: "fioul", label: "Fioul"}, {value: "gaz", label: "Gaz"} ] }
+    conditions:
+      - field: residence_principale
+        operator: "=="
+        value: true
+      - field: energie_chaudiere
+        operator: "in"
+        value: ["charbon", "fioul", "gaz"]
     output:
-      name: multiplicateur_bonus
+      name: kwh_cumac_bonifie
       round: 0
 
 eligibility_details: |
-  • Secteur : bâtiments résidentiels existants.
-  • Dénomination : mise en place d’une PAC air/eau pour le chauffage ou le chauffage + ECS. La PAC est installée et mise en service ;
-    si l’installation a lieu durant la période de chauffe, elle est conservée en fonctionnement durant le reste de la période de chauffe.
-  • Non éligibles : PAC associées à un autre système de chauffage ; PAC utilisées uniquement pour l’ECS.
-  • Non cumulable avec : BAR-TH-101, BAR-TH-124, BAR-TH-143, BAR-TH-148, BAR-TH-168.
-  • Mise en œuvre par un professionnel disposant d’un signe de qualité (décret n°2014-812, 5° ou 5°+6° selon l’usage).
-  • ηs (chauffage des locaux, hors régulation) selon (UE) n°813/2013 :
-    - Application basse température : ηs ≥ 126 %
-    - Application moyenne/haute température : ηs ≥ 111 %
-  • L’ηs prise en compte est celle de la PAC seule (hors régulation).
+  • Secteur : bâtiments résidentiels existants (maisons individuelles ou appartements)
+  • Type : PAC air/eau pour chauffage seul OU chauffage + ECS (mise en service)
+  • Validité : opérations engagées jusqu'au 31/12/2030
+  • Non cumulable avec : BAR-TH-101, BAR-TH-124, BAR-TH-143, BAR-TH-148, BAR-TH-168
+
+  CONDITIONS D'ÉLIGIBILITÉ (toutes obligatoires)
+  • Non éligibles : PAC associées à autre système chauffage ; PAC uniquement pour ECS
+  • Efficacité énergétique saisonnière ηs (chauffage des locaux, hors régulation), selon (UE) n°813/2013 :
+    - Application basse température (plancher/plafond/ventilo-convecteurs à eau) : ηs ≥ 126 %
+    - Application moyenne/haute température (radiateurs 45°C, chauffage + ECS) : ηs ≥ 111 %
+  • ηs prise en compte : celle de la PAC seule (hors régulation, à 35°C pour BT, à 55°C pour MHT)
   • Systèmes déportés ECS : même marque que la PAC ; seule la PAC consomme l’énergie pour l’ECS.
     Dérogation : résistance électrique de secours/anti-légionelle admise si la régulation priorise la PAC.
   • Choix de l’ηs selon émetteurs :
@@ -145,9 +151,17 @@ meta:
   lifetime_years: 17
   valid_from: "2026-01-01"
   valid_to: "2030-12-31"
+  non_cumulable_with:
+    - BAR-TH-101
+    - BAR-TH-124
+    - BAR-TH-143
+    - BAR-TH-148
+    - BAR-TH-168
   references:
-    - "Fiche CEE BAR-TH-171 vA78.4 — Pompe à chaleur air/eau (01/01/2026 → 31/12/2030)"
-    - "Règlement (UE) n°813/2013 — ηs chauffage locaux"
-    - "Communication 2014/C 207/02 — classes de régulateurs"
-    - "Décret n°2014-812 du 16 juillet 2014 — qualification"
-    - "Bonification ×5 — remplacement chaudière individuelle RP (BAR-TH-171)"
+    - "Fiche CEE BAR-TH-171 vA78.4 — Pompe à chaleur air/eau (01/01/2026)"
+    - "Règlement (UE) n°813/2013 — Efficacité énergétique saisonnière ηs"
+    - "Communication 2014/C 207/02 — classes de régulateurs (IV-VIII)"
+    - "EN 12975-1 ; NF EN ISO 9806 — spécifications capteurs"
+    - "Décret n°2014-812 du 16 juillet 2014 — qualification des installateurs"
+    - "NF EN ISO/IEC 17065, EA/COFRAC — organismes accrédités"
+    - "UE 2017/1369 — fiche d'information produit PAC"
