@@ -16,26 +16,6 @@ inputs:
       - { value: "H1", label: "H1" }
       - { value: "H2", label: "H2" }
       - { value: "H3", label: "H3" }
-  
-  - name: coup_de_pouce
-    label: "Signataire charte « Coup de pouce Chauffage »"
-    type: boolean
-    default: false
-  
-  - name: remplacement_chaudiere
-    label: "Remplacement d'une chaudière au charbon, fioul ou gaz"
-    type: boolean
-    default: false
-  
-  - name: residence_principale
-    label: "Logement en résidence principale"
-    type: boolean
-    default: false
-  
-  - name: signataire_charte_v6
-    label: "Signataire charte « Coup de pouce Chauffage » (annexe V-6)"
-    type: boolean
-    default: false
 
 # Forfait par équipement selon la zone
 calcul_standard:
@@ -55,6 +35,11 @@ bonifications:
     enabled_by_default: false
     kind: conditional_multiplication
     rate: 2
+    inputs:
+      - { name: coup_de_pouce, label: "Signataire charte « Coup de pouce Chauffage »", type: boolean, default: false }
+      - { name: remplacement_chaudiere, label: "Remplacement d'une chaudière au charbon, fioul ou gaz", type: boolean, default: false }
+      - { name: residence_principale, label: "Logement en résidence principale", type: boolean, default: false }
+      - { name: signataire_charte_v6, label: "Signataire charte « Coup de pouce Chauffage » (annexe V-6)", type: boolean, default: false }
     conditions:
       - field: coup_de_pouce
         operator: "=="

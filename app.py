@@ -490,6 +490,48 @@ def compute_block(block, values):
             "scale": s,
         }
 
+    # --- (8) conditional_multiplication : multiplicateur avec conditions ---
+    if kind == "conditional_multiplication":
+        rate = D(block.get("rate", 1))
+        conditions = block.get("conditions", [])
+        
+        # Vérifier toutes les conditions
+        all_conditions_met = True
+        cond_details = []
+        
+        for cond in conditions:
+            field = cond.get("field")
+            operator = cond.get("operator", "==")
+            expected = cond.get("value")
+            
+            actual = values.get(field)
+            
+            # Évaluer la condition selon l'opérateur
+            if operator == "==":
+                met = actual == expected
+            elif operator == "in":
+                met = actual in expected if isinstance(expected, list) else actual == expected
+            elif operator == "!=":
+                met = actual != expected
+            else:
+                met = False
+            
+            cond_details.append(f"{field} {operator} {expected}: {'✓' if met else '✗'}")
+            all_conditions_met = all_conditions_met and met
+        
+        # Retourner le multiplicateur (rate si conditions OK, sinon 1)
+        mult = rate if all_conditions_met else D(1)
+        detail = f"Conditions: {', '.join(cond_details)} → multiplicateur={mult}"
+        
+        return {
+            "name": out.get("name", "multiplicateur"),
+            "value": D(0),
+            "raw": D(0),
+            "detail": detail,
+            "unit": None,
+            "scale": mult,
+        }
+
     st.error(f"Type de calcul non pris en charge: {kind}")
     st.stop()
 
@@ -548,22 +590,31 @@ def main():
                     active_bonuses.append(b)
 
     for b in active_bonuses:
-        applies = b.get("applies", "additive")
-        if applies == "scale":
-            res = compute_block(b, values)  # renverra 'scale'
+        applies = b.get("applies")
+        kind = b.get("kind", "additive")
+        
+        # Détecter le type de traitement (priorité à 'applies' pour backward-compatibility, sinon 'kind')
+        bonus_type = applies if applies else kind
+        
+        if bonus_type == "scale" or bonus_type == "conditional_multiplication":
+            # Bonifications multiplicatives
+            res = compute_block(b, values)
             mult = res.get("scale", D(1))
             total = arrondir(D(total) * mult, 0)
             total_breakdown.append((b.get("name","Bonus (×)"), f"× {mult}"))
             st.markdown(f"- **{b.get('name','Bonus')}** : × {mult}")
             st.caption(f"Détail : {res.get('detail','')}")
-        else:
+        elif bonus_type == "replacement":
             res = compute_block(b, values)
-            if applies == "replacement":
-                total = res["value"]
-                total_breakdown = [(b.get('name','Bonus'), res["value"])]
-            else:
-                total += res["value"]
-                total_breakdown.append((b.get('name','Bonus'), res["value"]))
+            total = res["value"]
+            total_breakdown = [(b.get('name','Bonus'), res["value"])]
+            st.markdown(f"- **{b.get('name','Bonus')} (kWh cumac)** : {res['value']:,}".replace(",", " "))
+            st.caption(f"Détail : {res['detail']}")
+        else:
+            # Additive par défaut
+            res = compute_block(b, values)
+            total += res["value"]
+            total_breakdown.append((b.get('name','Bonus'), res["value"]))
             st.markdown(f"- **{b.get('name','Bonus')} (kWh cumac)** : {res['value']:,}".replace(",", " "))
             st.caption(f"Détail : {res['detail']}")
 
